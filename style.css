@@ -1,0 +1,437 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: #fff;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ── Main Canvas ── */
+
+#mainCanvas {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  cursor: grab;
+}
+
+#mainCanvas.grabbing {
+  cursor: grabbing;
+}
+
+#mainCanvas.edit-cursor {
+  cursor: crosshair;
+}
+
+/* ── Images Layer (DOM-based placed images for GIF support) ── */
+
+#imagesLayer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  transform-origin: 0 0;
+  z-index: 1;
+}
+
+#imagesLayer img {
+  position: absolute;
+  pointer-events: none;
+}
+
+/* ── Toolbar ── */
+
+#toolbar {
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 10;
+}
+
+#toolbar button {
+  padding: 10px 22px;
+  border: none;
+  border-radius: 8px;
+  background: #fff;
+  color: #333;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+#toolbar button:hover {
+  background: #f5f5f5;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+
+/* ── Modals (shared) ── */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 100;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ── Upload Modal ── */
+
+.modal-content {
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px 32px;
+  min-width: 340px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+}
+
+.modal-content h3 {
+  margin-bottom: 18px;
+  font-size: 18px;
+  color: #222;
+}
+
+.upload-section {
+  margin-bottom: 16px;
+}
+
+.upload-section label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: #555;
+  font-weight: 500;
+}
+
+.upload-section input[type="file"] {
+  font-size: 13px;
+}
+
+.url-row {
+  display: flex;
+  gap: 8px;
+}
+
+.url-row input[type="text"] {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.url-row input[type="text"]:focus {
+  border-color: #888;
+}
+
+#btnLoadUrl {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: #333;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+#btnLoadUrl:hover {
+  background: #555;
+}
+
+.btn-secondary {
+  display: block;
+  margin-top: 12px;
+  padding: 8px 20px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  color: #555;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-secondary:hover {
+  background: #f0f0f0;
+}
+
+/* ── Drawing Modal ── */
+
+.draw-modal-content {
+  position: relative;
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#drawCanvas {
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  cursor: crosshair;
+  background: repeating-conic-gradient(#f0f0f0 0% 25%, #fff 0% 50%) 50% / 16px 16px;
+}
+
+#drawTools {
+  position: absolute;
+  right: -60px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tool-btn {
+  width: 48px;
+  height: 48px;
+  border: 2px solid #ddd;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  color: #555;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.tool-btn:hover {
+  border-color: #aaa;
+}
+
+.tool-btn.active {
+  border-color: #333;
+  background: #333;
+  color: #fff;
+}
+
+#btnReady {
+  margin-top: 16px;
+  padding: 10px 36px;
+  border: none;
+  border-radius: 8px;
+  background: #333;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+#btnReady:hover {
+  background: #555;
+}
+
+/* ── Edit Mode UI ── */
+
+#editUI {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+}
+
+#editUI > * {
+  pointer-events: auto;
+}
+
+#editImage {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  image-rendering: pixelated;
+  opacity: 0.85;
+  border: 2px dashed rgba(0, 0, 0, 0.3);
+}
+
+/* ── Size Slider ── */
+
+#sizeSliderContainer {
+  position: fixed;
+  right: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#sliderTrack {
+  position: relative;
+  width: 4px;
+  height: 200px;
+  background: #ccc;
+  border-radius: 2px;
+}
+
+#sliderThumb {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--slider-t, 0.47) * 100%);
+  width: var(--thumb-size, 20px);
+  height: var(--thumb-size, 20px);
+  background: #333;
+  border-radius: 50%;
+  transform: translate(-50%, 50%);
+  cursor: grab;
+  transition: width 0.1s, height 0.1s;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+#sliderThumb:active {
+  cursor: grabbing;
+}
+
+/* ── Place & Exit Buttons ── */
+
+#btnPlace {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 44px;
+  border: none;
+  border-radius: 8px;
+  background: #333;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  transition: background 0.15s;
+}
+
+#btnPlace:hover {
+  background: #555;
+}
+
+#btnExit {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  padding: 10px 24px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background: #fff;
+  color: #555;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: background 0.15s;
+}
+
+#btnExit:hover {
+  background: #f0f0f0;
+}
+
+/* ── Points Display ── */
+
+#pointsDisplay {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 22px;
+  font-weight: 700;
+  color: #333;
+  z-index: 10;
+  background: #fff;
+  padding: 6px 18px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* ── Toast Notifications ── */
+
+#toastContainer {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 200;
+  pointer-events: none;
+}
+
+.toast {
+  padding: 10px 16px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  min-width: 220px;
+  max-width: 320px;
+  position: relative;
+  overflow: hidden;
+  animation: toastIn 0.25s ease-out;
+}
+
+.toast-warning { background: #fff8e1; color: #b8860b; }
+.toast-error   { background: #fdecea; color: #c62828; }
+.toast-info    { background: #e3f2fd; color: #1565c0; }
+
+.toast-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  animation: toastBar linear forwards;
+}
+
+.toast-warning .toast-bar { background: #b8860b; }
+.toast-error .toast-bar   { background: #c62828; }
+.toast-info .toast-bar    { background: #1565c0; }
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(30px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toastBar {
+  from { width: 0; }
+  to   { width: 100%; }
+}
+
+/* ── Slider Cost Label ── */
+
+#sliderCostLabel {
+  position: absolute;
+  right: calc(100% + 12px);
+  bottom: calc(var(--slider-t, 0.47) * 100%);
+  transform: translateY(50%);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+  color: #333;
+}

@@ -1,0 +1,13 @@
+speed_factor: 0.04
+zoom_sensitivity: 0.001
+min_zoom: 0.05
+max_zoom: 20
+world_size: 5000
+grid_step: 50
+min_image_pct: 0.01
+max_image_pct: 0.5
+pen_size: 4
+eraser_size: 4
+starting_points: 1000
+points_area_divisor: 25000
+warning_duration: 5

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>cvc-place</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="mainCanvas"></canvas>
+  <div id="imagesLayer"></div>
+
+  <!-- Toolbar (upper-left, stacked) -->
+  <div id="toolbar">
+    <button id="btnUpload">Upload Image</button>
+    <button id="btnDraw">Draw</button>
+  </div>
+
+  <!-- Points display (top center) -->
+  <div id="pointsDisplay"><span id="pointsValue">1000</span> pts</div>
+
+  <!-- Toast container (top right) -->
+  <div id="toastContainer"></div>
+
+  <!-- Upload Modal -->
+  <div id="uploadModal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Upload Image</h3>
+      <div class="upload-section">
+        <label for="fileInput">From device:</label>
+        <input type="file" id="fileInput" accept="image/*">
+      </div>
+      <div class="upload-section">
+        <label for="urlInput">From URL:</label>
+        <div class="url-row">
+          <input type="text" id="urlInput" placeholder="https://example.com/image.png">
+          <button id="btnLoadUrl">Load</button>
+        </div>
+      </div>
+      <button id="btnCloseUpload" class="btn-secondary">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Drawing Modal -->
+  <div id="drawModal" class="modal hidden">
+    <div class="draw-modal-content">
+      <canvas id="drawCanvas" width="400" height="400"></canvas>
+      <div id="drawTools">
+        <button id="btnPen" class="tool-btn active">Pen</button>
+        <button id="btnEraser" class="tool-btn">Eraser</button>
+      </div>
+      <button id="btnReady">Ready</button>
+    </div>
+  </div>
+
+  <!-- Edit Mode UI -->
+  <div id="editUI" class="hidden">
+    <img id="editImage" src="" alt="">
+    <div id="sizeSliderContainer">
+      <div id="sliderTrack">
+        <div id="sliderThumb"></div>
+        <div id="sliderCostLabel">0</div>
+      </div>
+    </div>
+    <button id="btnPlace">Place</button>
+    <button id="btnExit">Exit</button>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+- SUDO user can place of any size (unlimited points), and remove any image by selecting it, or clear the canvas
+- SUDO user can edit any image by selecting it, and then dragging it to a new position or resize it
+- Users can contribute points to an image to be placed on the canvas, the bigger the image, the more points it costs, so users can accumulate points to place larger images. This will require a special window interface for users to see all the images to contribute
+- Leaderboard of users by points, images contributed, and total points contributed
+- Save all user points, username and password (encrypted) to a json
+- Red warning if the image to be placed is outside (or partially outside) the canvas
+
+Gain points:
+- Users can give points to other Users as a gift
+- Users can earn points by GPU use in the clusters
+- Users can earn points by time spent inside the CVC
