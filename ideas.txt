@@ -4,6 +4,7 @@
 - Leaderboard of users by points, images contributed, and total points contributed
 - Save all user points, username and password (encrypted) to a json
 - Red warning if the image to be placed is outside (or partially outside) the canvas
+- Images placed are anonymous
 
 Gain points:
 - Users can give points to other Users as a gift
