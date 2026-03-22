@@ -12,7 +12,7 @@ import urllib.request
 import db_store
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PORT = 8080
+PORT = 8123
 IMAGES_DIR = os.path.join(BASE_DIR, "images")
 PLACEMENTS_FILE = os.path.join(BASE_DIR, "placements.json")
 CONFIG_FILE = os.path.join(BASE_DIR, "config.yaml")
