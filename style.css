@@ -74,6 +74,98 @@ body {
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
 }
 
+/* ── Pending approval notice ── */
+
+#pendingNotice {
+  position: fixed;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  max-width: min(90vw, 440px);
+  padding: 14px 20px;
+  background: rgba(255, 248, 230, 0.96);
+  backdrop-filter: blur(8px);
+  border: 1px solid #e6d399;
+  border-radius: 10px;
+  color: #5d4e37;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Admin pending registrations modal ── */
+
+.pending-modal-content {
+  max-width: 440px;
+}
+
+.pending-modal-hint {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 14px;
+  line-height: 1.45;
+}
+
+#pendingList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.pending-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #f5f5f5;
+  border-radius: 8px;
+}
+
+.pending-row-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.pending-row-user {
+  font-weight: 700;
+  color: #333;
+}
+
+.pending-row-name {
+  font-size: 13px;
+  color: #555;
+  margin-top: 3px;
+  word-break: break-word;
+}
+
+.pending-row .pending-accept {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: #2e7d32;
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pending-row .pending-accept:hover {
+  background: #1b5e20;
+}
+
+.pending-empty {
+  font-size: 14px;
+  color: #888;
+  text-align: center;
+  padding: 16px;
+}
+
 /* ── Modals (shared) ── */
 
 .modal {
@@ -283,6 +375,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 50;
 }
 
 #sliderTrack {
@@ -433,5 +526,500 @@ body {
   font-weight: 700;
   white-space: nowrap;
   pointer-events: none;
+  color: #333;
+}
+
+/* ── Auth Modal ── */
+
+.auth-modal-content {
+  position: relative;
+  min-width: 340px;
+  max-width: 380px;
+}
+
+.auth-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: none;
+  border: none;
+  font-size: 22px;
+  color: #999;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 4px;
+  transition: color 0.15s;
+}
+
+.auth-close:hover {
+  color: #333;
+}
+
+.auth-field {
+  margin-bottom: 14px;
+}
+
+.auth-field label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 13px;
+  color: #555;
+  font-weight: 500;
+}
+
+.auth-field input {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1.5px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.auth-field input:focus {
+  border-color: #888;
+}
+
+.auth-field input.input-error {
+  border-color: #c62828;
+  box-shadow: 0 0 0 1px #c62828;
+}
+
+.auth-field small {
+  display: block;
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: #888;
+  line-height: 1.35;
+}
+
+.auth-submit {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background: #333;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.auth-submit:hover {
+  background: #555;
+}
+
+.auth-switch {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 6px;
+  border: none;
+  background: none;
+  color: #777;
+  font-size: 13px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.auth-switch:hover {
+  color: #333;
+}
+
+/* ── Admin: Clear Button ── */
+
+#btnClear {
+  background: #c62828 !important;
+  color: #fff !important;
+}
+
+#btnClear:hover {
+  background: #e53935 !important;
+}
+
+/* ── Admin: Selection Overlay ── */
+
+.admin-select-box {
+  position: absolute;
+  border: 2px dashed rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+  cursor: move;
+  z-index: 10;
+}
+
+.admin-select-username {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  transform-origin: center bottom;
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 1px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.admin-select-delete {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: #c62828;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  transform-origin: top right;
+}
+
+/* ── Leaderboard ── */
+
+#leaderboard {
+  position: fixed;
+  left: 18px;
+  top: 286px;
+  width: 230px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  overflow: hidden;
+}
+
+#leaderboard.show-pts {
+  width: 280px;
+}
+
+#leaderboardHeader {
+  padding: 10px 14px 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #444;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.lb-row {
+  display: flex;
+  align-items: center;
+  padding: 6px 14px;
+  gap: 6px;
+  font-size: 12.5px;
+}
+
+.lb-head {
+  font-weight: 600;
+  color: #888;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding-top: 8px;
+  padding-bottom: 4px;
+}
+
+.lb-row:not(.lb-head):nth-child(even) {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+#leaderboardBody {
+  max-height: 170px;
+  overflow-y: auto;
+}
+
+#leaderboardBody::-webkit-scrollbar {
+  width: 4px;
+}
+
+#leaderboardBody::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 2px;
+}
+
+.lb-rank {
+  width: 24px;
+  flex-shrink: 0;
+  text-align: center;
+  font-weight: 700;
+  color: #999;
+}
+
+.lb-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.lb-rank-1 { background: #f9a825; }
+.lb-rank-2 { background: #90a4ae; }
+.lb-rank-3 { background: #c17b3e; }
+
+.lb-user {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #333;
+  font-weight: 500;
+}
+
+.lb-total {
+  width: 42px;
+  flex-shrink: 0;
+  text-align: right;
+  font-weight: 600;
+  color: #555;
+  font-variant-numeric: tabular-nums;
+}
+
+.lb-imgs {
+  width: 32px;
+  flex-shrink: 0;
+  text-align: right;
+  color: #777;
+  font-variant-numeric: tabular-nums;
+}
+
+.lb-pts {
+  display: none;
+  width: 42px;
+  flex-shrink: 0;
+  text-align: right;
+  color: #777;
+  font-variant-numeric: tabular-nums;
+}
+
+#leaderboard.show-pts .lb-pts {
+  display: inline;
+}
+
+/* ── Contributions Modal ── */
+
+.contrib-modal-content {
+  position: relative;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 80vw;
+  max-height: 70vh;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+}
+
+#contribGallery {
+  display: flex;
+  gap: 18px;
+  overflow-x: auto;
+  padding: 12px 0;
+  min-height: 260px;
+}
+
+#contribGallery::-webkit-scrollbar {
+  height: 6px;
+}
+
+#contribGallery::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+
+.contrib-card {
+  flex-shrink: 0;
+  width: 180px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.contrib-card img {
+  width: 180px;
+  height: 180px;
+  object-fit: cover;
+  display: block;
+}
+
+.contrib-card-info {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+}
+
+.contrib-card-stats {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+}
+
+.contrib-card-stats span {
+  color: #333;
+}
+
+.contrib-card-stats.near-funded span { color: #b8860b; }
+.contrib-card-stats.fully-funded span { color: #2e7d32; }
+
+.contrib-card-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.contrib-card-actions button {
+  flex: 1;
+  padding: 5px 0;
+  border: none;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.contrib-btn-contribute {
+  background: #333;
+  color: #fff;
+}
+
+.contrib-btn-contribute:hover {
+  background: #555;
+}
+
+.contrib-btn-place {
+  background: #ddd;
+  color: #999;
+  pointer-events: none;
+}
+
+.contrib-btn-place.funded {
+  background: #fff;
+  color: #333;
+  pointer-events: auto;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  border: 1px solid #ccc;
+}
+
+.contrib-btn-place.funded:hover {
+  background: #f5f5f5;
+}
+
+.contrib-card-delete {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(198, 40, 40, 0.85);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.contrib-add-card {
+  flex-shrink: 0;
+  width: 180px;
+  height: 260px;
+  border: 2px dashed #ccc;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  background: transparent;
+}
+
+.contrib-add-card:hover {
+  border-color: #999;
+}
+
+.contrib-add-card span {
+  font-size: 48px;
+  color: #999;
+  font-weight: 300;
+  line-height: 1;
+}
+
+/* ── Contribution Sub-Modals ── */
+
+.contrib-cost-hint {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+#contribCostInput {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1.5px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  margin-bottom: 12px;
+}
+
+#contribCostInput:focus {
+  border-color: #888;
+}
+
+.contrib-cost-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.contrib-cost-actions button {
+  flex: 1;
+}
+
+#contribSlider {
+  width: 100%;
+  margin: 12px 0;
+}
+
+#contribSliderInfo {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.6;
+}
+
+#contribSliderInfo b {
   color: #333;
 }

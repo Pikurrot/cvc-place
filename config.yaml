@@ -11,3 +11,4 @@ eraser_size: 4
 starting_points: 1000
 points_area_divisor: 25000
 warning_duration: 5
+admin_username: admin

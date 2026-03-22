@@ -12,15 +12,76 @@
 
   <!-- Toolbar (upper-left, stacked) -->
   <div id="toolbar">
-    <button id="btnUpload">Upload Image</button>
-    <button id="btnDraw">Draw</button>
+    <button id="btnLogin">Login</button>
+    <button id="btnLogout" class="hidden">Logout</button>
+    <button id="btnUpload" class="hidden">Upload Image</button>
+    <button id="btnDraw" class="hidden">Draw</button>
+    <button id="btnContributions" class="hidden">Contributions</button>
+    <button id="btnClear" class="hidden">Clear</button>
+    <button id="btnPending" class="hidden">Pending</button>
+  </div>
+
+  <div id="pendingNotice" class="hidden">Request to join sent, admin will accept you soon!</div>
+
+  <!-- Leaderboard (left center) -->
+  <div id="leaderboard">
+    <div id="leaderboardHeader">Leaderboard</div>
+    <div id="leaderboardTable">
+      <div id="leaderboardHead" class="lb-row lb-head">
+        <span class="lb-rank">#</span>
+        <span class="lb-user">User</span>
+        <span class="lb-total">Total</span>
+        <span class="lb-imgs">Imgs</span>
+      </div>
+      <div id="leaderboardBody"></div>
+    </div>
   </div>
 
   <!-- Points display (top center) -->
-  <div id="pointsDisplay"><span id="pointsValue">1000</span> pts</div>
+  <div id="pointsDisplay" class="hidden"><span id="pointsValue">0</span> pts</div>
 
   <!-- Toast container (top right) -->
   <div id="toastContainer"></div>
+
+  <!-- Admin: pending registrations -->
+  <div id="pendingModal" class="modal hidden">
+    <div class="modal-content pending-modal-content">
+      <button id="pendingClose" class="auth-close">&times;</button>
+      <h3>Pending registrations</h3>
+      <p class="pending-modal-hint">Accept users to let them upload, draw, and use contributions.</p>
+      <div id="pendingList"></div>
+    </div>
+  </div>
+
+  <!-- Auth Modal -->
+  <div id="authModal" class="modal hidden">
+    <div class="modal-content auth-modal-content">
+      <button id="authClose" class="auth-close">&times;</button>
+      <h3 id="authTitle">Login</h3>
+
+      <div class="auth-field">
+        <label>Username</label>
+        <input type="text" id="authUsername">
+      </div>
+      <div class="auth-field">
+        <label>Password</label>
+        <input type="password" id="authPassword">
+        <small id="authPasswordHint" class="hidden">At least 8 characters, only alphanumeric</small>
+      </div>
+      <div id="authRepeatGroup" class="auth-field hidden">
+        <label>Repeat Password</label>
+        <input type="password" id="authRepeatPassword">
+      </div>
+      <div id="authRealNameGroup" class="auth-field hidden">
+        <label>Real Name</label>
+        <input type="text" id="authRealName">
+        <small>Your real name and surname, as appears in whoisin.php. E.g. "Dimosthenis Karatzas"</small>
+      </div>
+
+      <button id="authSubmit" class="auth-submit">Login</button>
+      <button id="authSwitch" class="auth-switch">or Register</button>
+    </div>
+  </div>
 
   <!-- Upload Modal -->
   <div id="uploadModal" class="modal hidden">
@@ -53,17 +114,74 @@
     </div>
   </div>
 
+  <!-- Contributions Modal -->
+  <div id="contribModal" class="modal hidden">
+    <div class="contrib-modal-content">
+      <button id="contribClose" class="auth-close">&times;</button>
+      <h3>Contributions</h3>
+      <div id="contribGallery"></div>
+    </div>
+  </div>
+
+  <!-- Contribution Upload Sub-Modal -->
+  <div id="contribUploadModal" class="modal hidden">
+    <div class="modal-content">
+      <h3>New Contribution</h3>
+      <div class="upload-section">
+        <label>From device:</label>
+        <input type="file" id="contribFileInput" accept="image/*">
+      </div>
+      <div class="upload-section">
+        <label>From URL:</label>
+        <div class="url-row">
+          <input type="text" id="contribUrlInput" placeholder="https://...">
+          <button id="contribBtnLoadUrl">Load</button>
+        </div>
+      </div>
+      <button id="contribBtnDraw" class="auth-submit" style="margin-top:8px">Draw</button>
+      <button id="contribUploadCancel" class="btn-secondary">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Contribution Cost Sub-Modal -->
+  <div id="contribCostModal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Set Cost</h3>
+      <p class="contrib-cost-hint">Enter the number of points this image will cost. People can contribute to reach this number. The more points, the larger the image will be when placed!</p>
+      <input type="number" id="contribCostInput" min="1" placeholder="e.g. 200">
+      <div class="contrib-cost-actions">
+        <button id="contribCostSubmit" class="auth-submit">Create</button>
+        <button id="contribCostCancel" class="btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contribute Slider Sub-Modal -->
+  <div id="contribSliderModal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Contribute Points</h3>
+      <input type="range" id="contribSlider" min="0" max="100" value="0">
+      <p id="contribSliderInfo"></p>
+      <div class="contrib-cost-actions">
+        <button id="contribSliderSubmit" class="auth-submit">Contribute</button>
+        <button id="contribSliderCancel" class="btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Edit Mode UI -->
   <div id="editUI" class="hidden">
     <img id="editImage" src="" alt="">
-    <div id="sizeSliderContainer">
-      <div id="sliderTrack">
-        <div id="sliderThumb"></div>
-        <div id="sliderCostLabel">0</div>
-      </div>
-    </div>
     <button id="btnPlace">Place</button>
     <button id="btnExit">Exit</button>
+  </div>
+
+  <!-- Size Slider (shared by edit mode and admin select) -->
+  <div id="sizeSliderContainer" class="hidden">
+    <div id="sliderTrack">
+      <div id="sliderThumb"></div>
+      <div id="sliderCostLabel">0</div>
+    </div>
   </div>
 
   <script src="app.js"></script>

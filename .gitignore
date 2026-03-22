@@ -60,6 +60,9 @@ cover/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+cvc_place.db
+cvc_place.db-wal
+cvc_place.db-shm
 
 # Flask stuff:
 instance/
@@ -205,3 +208,8 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# custom
+images
+*.json
+*.db
