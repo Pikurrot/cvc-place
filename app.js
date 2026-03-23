@@ -70,6 +70,28 @@
   const pendingModal = document.getElementById("pendingModal");
   const pendingClose = document.getElementById("pendingClose");
   const pendingList = document.getElementById("pendingList");
+  const mobileTopBar = document.getElementById("mobileTopBar");
+  const btnMenu = document.getElementById("btnMenu");
+  const btnLeaderboard = document.getElementById("btnLeaderboard");
+  const menuPanel = document.getElementById("menuPanel");
+  const menuPanelBackdrop = document.getElementById("menuPanelBackdrop");
+  const menuClose = document.getElementById("menuClose");
+  const menuPointsRow = document.getElementById("menuPointsRow");
+  const menuPointsValue = document.getElementById("menuPointsValue");
+  const menuBtnLogin = document.getElementById("menuBtnLogin");
+  const menuBtnLogout = document.getElementById("menuBtnLogout");
+  const menuBtnUpload = document.getElementById("menuBtnUpload");
+  const menuBtnDraw = document.getElementById("menuBtnDraw");
+  const menuBtnContributions = document.getElementById("menuBtnContributions");
+  const menuBtnClear = document.getElementById("menuBtnClear");
+  const menuBtnPending = document.getElementById("menuBtnPending");
+  const leaderboardModal = document.getElementById("leaderboardModal");
+  const leaderboardModalClose = document.getElementById("leaderboardModalClose");
+  const leaderboardBodyMobile = document.getElementById("leaderboardBodyMobile");
+  const leaderboardHeadMobile = document.getElementById("leaderboardHeadMobile");
+  const leaderboardTableMobile = document.getElementById("leaderboardTableMobile");
+
+  const compactMq = window.matchMedia("(max-width: 768px)");
 
   // ── Config (loaded from server) ──
   let cfg = {
@@ -128,6 +150,14 @@
   let adminDragStartY = 0;
   let adminOrigX = 0;
   let adminOrigY = 0;
+  let adminDragPointerId = null;
+
+  let activeCanvasPointerId = null;
+  let pinchBase = null;
+
+  let sliderPointerId = null;
+
+  let activeDrawPointerId = null;
 
   // ── Drawing state ──
   let drawTool = "pen";
@@ -174,6 +204,68 @@
     offsetY = Math.max(-ws + margin, Math.min(canvas.height - margin, offsetY));
   }
 
+  function shouldAllowCanvasGestures() {
+    if (mode === "drawing") return false;
+    if (!drawModal.classList.contains("hidden")) return false;
+    if (!authModal.classList.contains("hidden")) return false;
+    if (!uploadModal.classList.contains("hidden")) return false;
+    if (!contribModal.classList.contains("hidden")) return false;
+    if (!contribUploadModal.classList.contains("hidden")) return false;
+    if (!contribCostModal.classList.contains("hidden")) return false;
+    if (!contribSliderModal.classList.contains("hidden")) return false;
+    if (!pendingModal.classList.contains("hidden")) return false;
+    if (leaderboardModal && !leaderboardModal.classList.contains("hidden")) return false;
+    if (menuPanel && !menuPanel.classList.contains("hidden")) return false;
+    return true;
+  }
+
+  function closeMenu() {
+    if (menuPanel) menuPanel.classList.add("hidden");
+  }
+
+  function syncMobileChrome() {
+    if (!mobileTopBar || !menuPanel) return;
+    const compact = document.body.classList.contains("layout-compact");
+    if (!compact) {
+      mobileTopBar.classList.add("hidden");
+      menuPanel.classList.add("hidden");
+      if (leaderboardModal) leaderboardModal.classList.add("hidden");
+      return;
+    }
+
+    const chromeHidden = mode === "edit" || mode === "drawing";
+    if (chromeHidden) {
+      mobileTopBar.classList.add("hidden");
+      menuPanel.classList.add("hidden");
+      if (leaderboardModal) leaderboardModal.classList.add("hidden");
+      return;
+    }
+
+    mobileTopBar.classList.remove("hidden");
+
+    menuBtnLogin.classList.toggle("hidden", btnLogin.classList.contains("hidden"));
+    menuBtnLogout.classList.toggle("hidden", btnLogout.classList.contains("hidden"));
+    menuBtnUpload.classList.toggle("hidden", document.getElementById("btnUpload").classList.contains("hidden"));
+    menuBtnDraw.classList.toggle("hidden", document.getElementById("btnDraw").classList.contains("hidden"));
+    menuBtnContributions.classList.toggle("hidden", btnContributions.classList.contains("hidden"));
+    menuBtnClear.classList.toggle("hidden", btnClear.classList.contains("hidden"));
+    menuBtnPending.classList.toggle("hidden", btnPending.classList.contains("hidden"));
+
+    if (!pointsDisplay.classList.contains("hidden")) {
+      menuPointsRow.classList.remove("hidden");
+      menuPointsValue.textContent = pointsValue.textContent;
+    } else {
+      menuPointsRow.classList.add("hidden");
+    }
+
+    btnLeaderboard.classList.toggle("hidden", leaderboard.classList.contains("hidden"));
+  }
+
+  function applyCompactLayout() {
+    document.body.classList.toggle("layout-compact", compactMq.matches);
+    syncMobileChrome();
+  }
+
   // ── Config loading ──
 
   async function loadConfig() {
@@ -204,6 +296,7 @@
         btnClear.classList.add("hidden");
         pointsDisplay.classList.add("hidden");
         leaderboard.classList.add("hidden");
+        syncMobileChrome();
         return;
       }
 
@@ -231,6 +324,7 @@
       pointsDisplay.classList.add("hidden");
       leaderboard.classList.remove("hidden");
     }
+    syncMobileChrome();
   }
 
   async function restoreSession() {
@@ -411,8 +505,12 @@
     updateEditImageSize();
     toolbar.classList.add("hidden");
     leaderboard.classList.add("hidden");
+    if (mobileTopBar) mobileTopBar.classList.add("hidden");
+    closeMenu();
+    if (leaderboardModal) leaderboardModal.classList.add("hidden");
     editUI.classList.remove("hidden");
     canvas.classList.add("edit-cursor");
+    syncMobileChrome();
   }
 
   function exitEditMode() {
@@ -472,6 +570,27 @@
     }
   }
 
+  function updateSliderFromClientY(clientY) {
+    const rect = sliderTrack.getBoundingClientRect();
+    const rawT = 1 - (clientY - rect.top) / rect.height;
+    sliderT = Math.max(0, Math.min(1, rawT));
+    editScale = sliderTToScale(sliderT);
+    if (adminSelected !== null) {
+      const img = placedImages[adminSelected];
+      img.w = editImg.naturalWidth * editScale;
+      img.h = editImg.naturalHeight * editScale;
+      img.el.style.width = img.w + "px";
+      img.el.style.height = img.h + "px";
+      if (adminSelectBox) {
+        adminSelectBox.style.width = img.w + "px";
+        adminSelectBox.style.height = img.h + "px";
+      }
+    } else {
+      updateEditImageSize();
+    }
+    updateSliderVisuals();
+  }
+
   function showToast(message, type) {
     const el = document.createElement("div");
     el.className = "toast toast-" + type;
@@ -484,66 +603,87 @@
     setTimeout(() => { el.remove(); }, cfg.warning_duration * 1000);
   }
 
+  function setLeaderboardPtsHeader(showPts, headEl) {
+    if (!headEl) return;
+    if (showPts) {
+      if (!headEl.querySelector(".lb-pts")) {
+        const th = document.createElement("span");
+        th.className = "lb-pts";
+        th.textContent = "Pts";
+        headEl.appendChild(th);
+      }
+    } else {
+      const existing = headEl.querySelector(".lb-pts");
+      if (existing) existing.remove();
+    }
+  }
+
+  function appendLeaderboardRow(container, entry, i, showPts) {
+    const row = document.createElement("div");
+    row.className = "lb-row";
+
+    const rank = document.createElement("span");
+    rank.className = "lb-rank";
+    if (i < 3) {
+      const badge = document.createElement("span");
+      badge.className = "lb-rank-badge lb-rank-" + (i + 1);
+      badge.textContent = i + 1;
+      rank.appendChild(badge);
+    } else {
+      rank.textContent = i + 1;
+    }
+    row.appendChild(rank);
+
+    const user = document.createElement("span");
+    user.className = "lb-user";
+    user.textContent = entry.username;
+    row.appendChild(user);
+
+    const total = document.createElement("span");
+    total.className = "lb-total";
+    total.textContent = entry.total_spent;
+    row.appendChild(total);
+
+    const imgs = document.createElement("span");
+    imgs.className = "lb-imgs";
+    imgs.textContent = entry.images;
+    row.appendChild(imgs);
+
+    if (showPts) {
+      const pts = document.createElement("span");
+      pts.className = "lb-pts";
+      pts.textContent = entry.points;
+      row.appendChild(pts);
+    }
+
+    container.appendChild(row);
+  }
+
   async function refreshLeaderboard() {
     try {
       const r = await fetch("/api/leaderboard");
       const data = await r.json();
       leaderboardBody.innerHTML = "";
+      if (leaderboardBodyMobile) leaderboardBodyMobile.innerHTML = "";
 
       const showPts = isAdmin();
       if (showPts) {
         leaderboard.classList.add("show-pts");
-        if (!leaderboardHead.querySelector(".lb-pts")) {
-          const th = document.createElement("span");
-          th.className = "lb-pts";
-          th.textContent = "Pts";
-          leaderboardHead.appendChild(th);
-        }
+        if (leaderboardTableMobile) leaderboardTableMobile.classList.add("show-pts");
+        setLeaderboardPtsHeader(true, leaderboardHead);
+        setLeaderboardPtsHeader(true, leaderboardHeadMobile);
       } else {
         leaderboard.classList.remove("show-pts");
-        const existing = leaderboardHead.querySelector(".lb-pts");
-        if (existing) existing.remove();
+        if (leaderboardTableMobile) leaderboardTableMobile.classList.remove("show-pts");
+        setLeaderboardPtsHeader(false, leaderboardHead);
+        setLeaderboardPtsHeader(false, leaderboardHeadMobile);
       }
 
       data.forEach((entry, i) => {
-        const row = document.createElement("div");
-        row.className = "lb-row";
-
-        const rank = document.createElement("span");
-        rank.className = "lb-rank";
-        if (i < 3) {
-          const badge = document.createElement("span");
-          badge.className = "lb-rank-badge lb-rank-" + (i + 1);
-          badge.textContent = i + 1;
-          rank.appendChild(badge);
-        } else {
-          rank.textContent = i + 1;
+        appendLeaderboardRow(leaderboardBody, entry, i, showPts);
+        if (leaderboardBodyMobile) {
+          appendLeaderboardRow(leaderboardBodyMobile, entry, i, showPts);
         }
-        row.appendChild(rank);
-
-        const user = document.createElement("span");
-        user.className = "lb-user";
-        user.textContent = entry.username;
-        row.appendChild(user);
-
-        const total = document.createElement("span");
-        total.className = "lb-total";
-        total.textContent = entry.total_spent;
-        row.appendChild(total);
-
-        const imgs = document.createElement("span");
-        imgs.className = "lb-imgs";
-        imgs.textContent = entry.images;
-        row.appendChild(imgs);
-
-        if (showPts) {
-          const pts = document.createElement("span");
-          pts.className = "lb-pts";
-          pts.textContent = entry.points;
-          row.appendChild(pts);
-        }
-
-        leaderboardBody.appendChild(row);
       });
     } catch (err) {
       console.error("Failed to refresh leaderboard:", err);
@@ -602,6 +742,7 @@
       leaderboard.classList.remove("hidden");
       canvas.classList.remove("edit-cursor");
       refreshLeaderboard();
+      syncMobileChrome();
       return;
     }
 
@@ -656,6 +797,7 @@
   // ── Upload Flow ──
 
   function openUploadModal() {
+    closeMenu();
     uploadModal.classList.remove("hidden");
     fileInput.value = "";
     urlInput.value = "";
@@ -714,9 +856,13 @@
     btnPen.classList.add("active");
     btnEraser.classList.remove("active");
     toolbar.classList.add("hidden");
+    if (mobileTopBar) mobileTopBar.classList.add("hidden");
+    closeMenu();
+    if (leaderboardModal) leaderboardModal.classList.add("hidden");
     drawModal.classList.remove("hidden");
 
     drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+    syncMobileChrome();
   }
 
   function closeDrawModal() {
@@ -725,20 +871,31 @@
       toolbar.classList.remove("hidden");
     }
     mode = "spectate";
+    syncMobileChrome();
+  }
+
+  function drawClientToCanvas(clientX, clientY) {
+    const rect = drawCanvas.getBoundingClientRect();
+    const w = rect.width || 1;
+    const h = rect.height || 1;
+    return {
+      x: (clientX - rect.left) * (drawCanvas.width / w),
+      y: (clientY - rect.top) * (drawCanvas.height / h),
+    };
   }
 
   function drawStart(e) {
     isDrawing = true;
-    const rect = drawCanvas.getBoundingClientRect();
-    lastDrawX = e.clientX - rect.left;
-    lastDrawY = e.clientY - rect.top;
+    const p = drawClientToCanvas(e.clientX, e.clientY);
+    lastDrawX = p.x;
+    lastDrawY = p.y;
   }
 
   function drawMove(e) {
     if (!isDrawing) return;
-    const rect = drawCanvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const p = drawClientToCanvas(e.clientX, e.clientY);
+    const x = p.x;
+    const y = p.y;
 
     drawCtx.lineCap = "round";
     drawCtx.lineJoin = "round";
@@ -776,6 +933,7 @@
       contribUploadModal.classList.add("hidden");
       contribCostInput.value = "";
       contribCostModal.classList.remove("hidden");
+      syncMobileChrome();
       return;
     }
     const img = new Image();
@@ -798,6 +956,7 @@
   // ── Auth Modal ──
 
   function openAuthModal() {
+    closeMenu();
     authMode = "login";
     syncAuthMode();
     clearAuthFields();
@@ -949,6 +1108,7 @@
 
   function handleLogout() {
     if (!confirm("Are you sure you want to logout?")) return;
+    closeMenu();
     adminDeselectImage();
     currentUser = null;
     localStorage.removeItem("cvc_username");
@@ -959,6 +1119,7 @@
   // ── Admin: pending user approvals ──
 
   async function openPendingModal() {
+    closeMenu();
     pendingModal.classList.remove("hidden");
     await refreshPendingList();
   }
@@ -1058,10 +1219,14 @@
     });
     box.appendChild(delBtn);
 
-    box.addEventListener("mousedown", (e) => {
+    box.addEventListener("pointerdown", (e) => {
       if (e.target === delBtn) return;
+      if (e.pointerType === "mouse" && e.button !== 0) return;
       e.stopPropagation();
+      e.preventDefault();
+      box.setPointerCapture(e.pointerId);
       adminDragging = true;
+      adminDragPointerId = e.pointerId;
       adminDragStartX = e.clientX;
       adminDragStartY = e.clientY;
       adminOrigX = img.x;
@@ -1092,6 +1257,7 @@
     }
     adminSelected = null;
     adminDragging = false;
+    adminDragPointerId = null;
     if (mode !== "edit") {
       sizeSliderContainer.classList.add("hidden");
       sliderCostLabel.style.display = "none";
@@ -1158,6 +1324,7 @@
   }
 
   async function adminClearAll() {
+    closeMenu();
     if (!confirm("Remove ALL images from the canvas?")) return;
     try {
       const r = await fetch("/api/clear", {
@@ -1184,6 +1351,7 @@
   // ── Contributions System ──
 
   async function openContribModal() {
+    closeMenu();
     try {
       const r = await fetch("/api/contributions");
       const data = await r.json();
@@ -1435,10 +1603,101 @@
 
   // ── Event Wiring ──
 
-  window.addEventListener("resize", resizeCanvas);
+  function handleAdminPointerEnd(e) {
+    if (!adminDragging || adminSelected === null || e.pointerId !== adminDragPointerId) return;
+    try {
+      if (adminSelectBox && adminSelectBox.hasPointerCapture(e.pointerId)) {
+        adminSelectBox.releasePointerCapture(e.pointerId);
+      }
+    } catch (err) { /* ignore */ }
+    adminDragging = false;
+    adminDragPointerId = null;
+    adminUpdatePlacement(placedImages[adminSelected]);
+  }
+
+  function handleCanvasPointerEnd(e) {
+    if (e.pointerId !== activeCanvasPointerId) return;
+    try {
+      if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+    } catch (err) { /* ignore */ }
+    activeCanvasPointerId = null;
+    if (mode === "spectate") endPan();
+    else if (mode === "edit") editMouseUp();
+  }
+
+  window.addEventListener("resize", () => {
+    resizeCanvas();
+    applyCompactLayout();
+  });
+  window.addEventListener("orientationchange", () => {
+    setTimeout(applyCompactLayout, 200);
+  });
+  if (typeof compactMq.addEventListener === "function") {
+    compactMq.addEventListener("change", applyCompactLayout);
+  } else if (typeof compactMq.addListener === "function") {
+    compactMq.addListener(applyCompactLayout);
+  }
+
   window.addEventListener("wheel", handleWheel, { passive: false });
 
-  canvas.addEventListener("mousedown", (e) => {
+  window.addEventListener("touchstart", (e) => {
+    if (!shouldAllowCanvasGestures()) return;
+    if (e.touches.length === 2) {
+      if (activeCanvasPointerId !== null) {
+        try {
+          canvas.releasePointerCapture(activeCanvasPointerId);
+        } catch (err) { /* ignore */ }
+        activeCanvasPointerId = null;
+        if (mode === "spectate") endPan();
+        else if (mode === "edit") editMouseUp();
+      }
+      if (adminDragging && adminSelected !== null && adminDragPointerId !== null) {
+        try {
+          if (adminSelectBox) adminSelectBox.releasePointerCapture(adminDragPointerId);
+        } catch (err2) { /* ignore */ }
+        adminDragging = false;
+        const idx = adminSelected;
+        adminDragPointerId = null;
+        adminUpdatePlacement(placedImages[idx]);
+      }
+      const t0 = e.touches[0];
+      const t1 = e.touches[1];
+      const d = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+      const cx = (t0.clientX + t1.clientX) / 2;
+      const cy = (t0.clientY + t1.clientY) / 2;
+      pinchBase = { d0: d, s0: scale, ox0: offsetX, oy0: offsetY, cx, cy };
+      endPan();
+      editMouseUp();
+    }
+  }, { passive: true });
+
+  window.addEventListener("touchmove", (e) => {
+    if (!pinchBase || !shouldAllowCanvasGestures()) return;
+    if (e.touches.length !== 2) return;
+    e.preventDefault();
+    const t0 = e.touches[0];
+    const t1 = e.touches[1];
+    const d = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+    const factor = d / pinchBase.d0;
+    const newScale = Math.min(cfg.max_zoom, Math.max(cfg.min_zoom, pinchBase.s0 * factor));
+    const ratio = newScale / pinchBase.s0;
+    offsetX = pinchBase.cx - ratio * (pinchBase.cx - pinchBase.ox0);
+    offsetY = pinchBase.cy - ratio * (pinchBase.cy - pinchBase.oy0);
+    scale = newScale;
+    clampOffset();
+    updateEditImageSize();
+    updateAdminSelectScale();
+  }, { passive: false });
+
+  window.addEventListener("touchend", (e) => {
+    if (pinchBase && e.touches.length < 2) pinchBase = null;
+  });
+  window.addEventListener("touchcancel", () => { pinchBase = null; });
+
+  canvas.addEventListener("pointerdown", (e) => {
+    if (!shouldAllowCanvasGestures()) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+
     if (mode === "spectate") {
       if (isAdmin()) {
         const pt = screenToCanvas(e.clientX, e.clientY);
@@ -1456,13 +1715,18 @@
         }
         adminDeselectImage();
       }
+      activeCanvasPointerId = e.pointerId;
+      canvas.setPointerCapture(e.pointerId);
       startPan(e);
     } else if (mode === "edit") {
+      activeCanvasPointerId = e.pointerId;
+      canvas.setPointerCapture(e.pointerId);
       editMouseDown(e);
     }
   });
-  window.addEventListener("mousemove", (e) => {
-    if (adminDragging && adminSelected !== null) {
+
+  window.addEventListener("pointermove", (e) => {
+    if (adminDragging && adminSelected !== null && e.pointerId === adminDragPointerId) {
       const dx = (e.clientX - adminDragStartX) / scale;
       const dy = (e.clientY - adminDragStartY) / scale;
       const img = placedImages[adminSelected];
@@ -1476,16 +1740,19 @@
       }
       return;
     }
+    if (activeCanvasPointerId === null || e.pointerId !== activeCanvasPointerId) return;
+    if (sliderDragging) return;
     if (mode === "spectate") movePan(e);
     else if (mode === "edit") editMouseMove(e);
   });
-  window.addEventListener("mouseup", () => {
-    if (adminDragging && adminSelected !== null) {
-      adminDragging = false;
-      adminUpdatePlacement(placedImages[adminSelected]);
-    }
-    if (mode === "spectate") endPan();
-    else if (mode === "edit") editMouseUp();
+
+  window.addEventListener("pointerup", (e) => {
+    handleAdminPointerEnd(e);
+    handleCanvasPointerEnd(e);
+  });
+  window.addEventListener("pointercancel", (e) => {
+    handleAdminPointerEnd(e);
+    handleCanvasPointerEnd(e);
   });
 
   document.getElementById("btnUpload").addEventListener("click", openUploadModal);
@@ -1497,6 +1764,37 @@
     if (e.target === pendingModal) closePendingModal();
   });
 
+  if (btnMenu && menuPanel) {
+    btnMenu.addEventListener("click", () => {
+      menuPanel.classList.toggle("hidden");
+    });
+  }
+  if (menuClose) menuClose.addEventListener("click", closeMenu);
+  if (menuPanelBackdrop) menuPanelBackdrop.addEventListener("click", closeMenu);
+
+  if (menuBtnLogin) menuBtnLogin.addEventListener("click", openAuthModal);
+  if (menuBtnLogout) menuBtnLogout.addEventListener("click", handleLogout);
+  if (menuBtnUpload) menuBtnUpload.addEventListener("click", openUploadModal);
+  if (menuBtnDraw) menuBtnDraw.addEventListener("click", openDrawModal);
+  if (menuBtnContributions) menuBtnContributions.addEventListener("click", openContribModal);
+  if (menuBtnClear) menuBtnClear.addEventListener("click", adminClearAll);
+  if (menuBtnPending) menuBtnPending.addEventListener("click", openPendingModal);
+
+  if (btnLeaderboard && leaderboardModal) {
+    btnLeaderboard.addEventListener("click", () => {
+      closeMenu();
+      leaderboardModal.classList.toggle("hidden");
+    });
+  }
+  if (leaderboardModalClose && leaderboardModal) {
+    leaderboardModalClose.addEventListener("click", () => leaderboardModal.classList.add("hidden"));
+  }
+  if (leaderboardModal) {
+    leaderboardModal.addEventListener("click", (e) => {
+      if (e.target === leaderboardModal) leaderboardModal.classList.add("hidden");
+    });
+  }
+
   fileInput.addEventListener("change", handleFileUpload);
   btnLoadUrl.addEventListener("click", handleUrlLoad);
   urlInput.addEventListener("keydown", (e) => {
@@ -1507,37 +1805,51 @@
     if (e.target === uploadModal) closeUploadModal();
   });
 
-  sliderThumb.addEventListener("mousedown", (e) => {
-    e.stopPropagation();
-    sliderDragging = true;
-  });
-  window.addEventListener("mousemove", (e) => {
-    if (!sliderDragging) return;
-    const rect = sliderTrack.getBoundingClientRect();
-    const rawT = 1 - (e.clientY - rect.top) / rect.height;
-    sliderT = Math.max(0, Math.min(1, rawT));
-    editScale = sliderTToScale(sliderT);
-    if (adminSelected !== null) {
-      const img = placedImages[adminSelected];
-      img.w = editImg.naturalWidth * editScale;
-      img.h = editImg.naturalHeight * editScale;
-      img.el.style.width = img.w + "px";
-      img.el.style.height = img.h + "px";
-      if (adminSelectBox) {
-        adminSelectBox.style.width = img.w + "px";
-        adminSelectBox.style.height = img.h + "px";
-      }
-    } else {
-      updateEditImageSize();
-    }
-    updateSliderVisuals();
-  });
-  window.addEventListener("mouseup", () => {
+  function endSliderPointer(e) {
+    if (e.pointerId !== sliderPointerId) return;
     if (sliderDragging && adminSelected !== null) {
       adminUpdatePlacement(placedImages[adminSelected]);
     }
+    try {
+      if (sliderThumb.hasPointerCapture(e.pointerId)) sliderThumb.releasePointerCapture(e.pointerId);
+    } catch (err) { /* ignore */ }
+    try {
+      if (sliderTrack.hasPointerCapture(e.pointerId)) sliderTrack.releasePointerCapture(e.pointerId);
+    } catch (err2) { /* ignore */ }
+    sliderPointerId = null;
     sliderDragging = false;
+  }
+
+  sliderThumb.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    sliderPointerId = e.pointerId;
+    sliderThumb.setPointerCapture(e.pointerId);
+    sliderDragging = true;
   });
+  sliderThumb.addEventListener("pointermove", (e) => {
+    if (e.pointerId !== sliderPointerId) return;
+    updateSliderFromClientY(e.clientY);
+  });
+  sliderThumb.addEventListener("pointerup", endSliderPointer);
+  sliderThumb.addEventListener("pointercancel", endSliderPointer);
+
+  sliderTrack.addEventListener("pointerdown", (e) => {
+    if (e.target === sliderThumb) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    updateSliderFromClientY(e.clientY);
+    sliderPointerId = e.pointerId;
+    sliderTrack.setPointerCapture(e.pointerId);
+    sliderDragging = true;
+  });
+  sliderTrack.addEventListener("pointermove", (e) => {
+    if (e.pointerId !== sliderPointerId) return;
+    updateSliderFromClientY(e.clientY);
+  });
+  sliderTrack.addEventListener("pointerup", endSliderPointer);
+  sliderTrack.addEventListener("pointercancel", endSliderPointer);
   btnPlace.addEventListener("click", placeImage);
   btnExit.addEventListener("click", exitEditMode);
 
@@ -1551,10 +1863,30 @@
     btnEraser.classList.add("active");
     btnPen.classList.remove("active");
   });
-  drawCanvas.addEventListener("mousedown", drawStart);
-  drawCanvas.addEventListener("mousemove", drawMove);
-  drawCanvas.addEventListener("mouseup", drawEnd);
-  drawCanvas.addEventListener("mouseleave", drawEnd);
+  function drawPointerDown(e) {
+    if (activeDrawPointerId !== null) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    e.preventDefault();
+    activeDrawPointerId = e.pointerId;
+    drawCanvas.setPointerCapture(e.pointerId);
+    drawStart(e);
+  }
+  function drawPointerMove(e) {
+    if (e.pointerId !== activeDrawPointerId) return;
+    drawMove(e);
+  }
+  function drawPointerEnd(e) {
+    if (e.pointerId !== activeDrawPointerId) return;
+    try {
+      if (drawCanvas.hasPointerCapture(e.pointerId)) drawCanvas.releasePointerCapture(e.pointerId);
+    } catch (err) { /* ignore */ }
+    activeDrawPointerId = null;
+    drawEnd();
+  }
+  drawCanvas.addEventListener("pointerdown", drawPointerDown);
+  drawCanvas.addEventListener("pointermove", drawPointerMove);
+  drawCanvas.addEventListener("pointerup", drawPointerEnd);
+  drawCanvas.addEventListener("pointercancel", drawPointerEnd);
   btnReady.addEventListener("click", finishDrawing);
 
   drawModal.addEventListener("click", (e) => {
@@ -1648,6 +1980,7 @@
 
   async function init() {
     resizeCanvas();
+    applyCompactLayout();
     await loadConfig();
     await restoreSession();
     updateAuthUI();

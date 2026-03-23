@@ -19,6 +19,7 @@ body {
   width: 100vw;
   height: 100vh;
   cursor: grab;
+  touch-action: none;
 }
 
 #mainCanvas.grabbing {
@@ -288,6 +289,10 @@ body {
   border-radius: 6px;
   cursor: crosshair;
   background: repeating-conic-gradient(#f0f0f0 0% 25%, #fff 0% 50%) 50% / 16px 16px;
+  touch-action: none;
+  max-width: 100%;
+  width: auto;
+  height: auto;
 }
 
 #drawTools {
@@ -384,6 +389,7 @@ body {
   height: 200px;
   background: #ccc;
   border-radius: 2px;
+  touch-action: none;
 }
 
 #sliderThumb {
@@ -398,6 +404,7 @@ body {
   cursor: grab;
   transition: width 0.1s, height 0.1s;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  touch-action: none;
 }
 
 #sliderThumb:active {
@@ -1022,4 +1029,215 @@ body {
 
 #contribSliderInfo b {
   color: #333;
+}
+
+/* ── Compact / mobile layout (matchMedia adds .layout-compact on body) ── */
+
+#mobileTopBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+  padding-left: calc(14px + env(safe-area-inset-left, 0px));
+  padding-right: calc(14px + env(safe-area-inset-right, 0px));
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+#mobileTopBar button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 10px;
+  background: #fff;
+  color: #333;
+  font-size: 20px;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+}
+
+.menu-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  pointer-events: none;
+}
+
+.menu-panel:not(.hidden) {
+  pointer-events: auto;
+}
+
+.menu-panel.hidden {
+  display: none !important;
+}
+
+.menu-panel-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.menu-panel-sheet {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(320px, 88vw);
+  max-height: 100%;
+  background: #fff;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.12);
+  padding: 16px;
+  padding-top: calc(16px + env(safe-area-inset-top, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.menu-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.menu-panel-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #222;
+}
+
+.menu-points-row {
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+  padding: 8px 12px;
+  background: #f5f5f5;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.menu-panel-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  flex: 1;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.menu-panel-actions button {
+  width: 100%;
+  padding: 14px 18px;
+  border: none;
+  border-radius: 10px;
+  background: #fff;
+  color: #333;
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  text-align: left;
+}
+
+.menu-btn-danger {
+  background: #c62828 !important;
+  color: #fff !important;
+}
+
+.leaderboard-modal-content {
+  position: relative;
+  max-width: min(100vw - 24px, 420px);
+  width: 100%;
+  max-height: min(90dvh, 100vh - 24px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  padding-top: calc(20px + env(safe-area-inset-top, 0px));
+}
+
+.leaderboard-modal-title {
+  margin-bottom: 12px;
+  font-size: 18px;
+  color: #222;
+}
+
+.leaderboard-table-wrap {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+#leaderboardBodyMobile {
+  max-height: 55dvh;
+  overflow-y: auto;
+}
+
+#leaderboardBodyMobile::-webkit-scrollbar {
+  width: 4px;
+}
+
+#leaderboardBodyMobile::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 2px;
+}
+
+#leaderboardTableMobile.show-pts .lb-pts {
+  display: inline;
+}
+
+body.layout-compact #toolbar {
+  display: none !important;
+}
+
+body.layout-compact #leaderboard {
+  display: none !important;
+}
+
+body.layout-compact #pointsDisplay {
+  display: none !important;
+}
+
+body.layout-compact #pendingNotice {
+  top: calc(56px + env(safe-area-inset-top, 0px));
+}
+
+.layout-compact .draw-modal-content {
+  max-width: min(100vw - 24px, 420px);
+  max-height: 90dvh;
+  overflow-y: auto;
+  align-items: stretch;
+}
+
+.layout-compact .draw-modal-content #drawTools {
+  position: static;
+  right: auto;
+  top: auto;
+  transform: none;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 14px;
+  width: 100%;
+  gap: 10px;
+}
+
+.layout-compact .draw-modal-content .tool-btn {
+  width: 52px;
+  height: 52px;
 }
