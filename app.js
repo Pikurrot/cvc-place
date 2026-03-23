@@ -90,6 +90,7 @@
   const leaderboardBodyMobile = document.getElementById("leaderboardBodyMobile");
   const leaderboardHeadMobile = document.getElementById("leaderboardHeadMobile");
   const leaderboardTableMobile = document.getElementById("leaderboardTableMobile");
+  const appVersion = document.getElementById("appVersion");
 
   const compactMq = window.matchMedia("(max-width: 768px)");
 
@@ -193,8 +194,15 @@
   }
 
   function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    // Match bitmap size to the canvas element's laid-out CSS size (not innerWidth/100vw),
+    // so drawing + offset/scale stay aligned with #imagesLayer on mobile (iOS vw/vh vs layout).
+    const w = Math.max(1, Math.round(canvas.clientWidth || window.innerWidth || 1));
+    const h = Math.max(1, Math.round(canvas.clientHeight || window.innerHeight || 1));
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+      clampOffset();
+    }
   }
 
   function clampOffset() {
@@ -268,6 +276,16 @@
 
   // ── Config loading ──
 
+  function applyVersionLabel() {
+    if (!appVersion) return;
+    const v = cfg.version;
+    if (v != null && String(v).length > 0) {
+      appVersion.textContent = "v" + String(v);
+    } else {
+      appVersion.textContent = "";
+    }
+  }
+
   async function loadConfig() {
     try {
       const r = await fetch("/api/config");
@@ -276,6 +294,7 @@
     } catch (err) {
       console.error("Failed to load config, using defaults:", err);
     }
+    applyVersionLabel();
   }
 
   // ── Auth UI ──
@@ -397,6 +416,7 @@
   // ── Render Loop ──
 
   function render() {
+    resizeCanvas();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = "#e8e8e8";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1630,8 +1650,18 @@
     applyCompactLayout();
   });
   window.addEventListener("orientationchange", () => {
-    setTimeout(applyCompactLayout, 200);
+    setTimeout(() => {
+      resizeCanvas();
+      applyCompactLayout();
+      clampOffset();
+    }, 200);
   });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", () => {
+      resizeCanvas();
+      clampOffset();
+    });
+  }
   if (typeof compactMq.addEventListener === "function") {
     compactMq.addEventListener("change", applyCompactLayout);
   } else if (typeof compactMq.addListener === "function") {
