@@ -70,6 +70,12 @@
   const pendingModal = document.getElementById("pendingModal");
   const pendingClose = document.getElementById("pendingClose");
   const pendingList = document.getElementById("pendingList");
+  const btnWhoInDebug = document.getElementById("btnWhoInDebug");
+  const whoInDebugModal = document.getElementById("whoInDebugModal");
+  const whoInDebugClose = document.getElementById("whoInDebugClose");
+  const whoInDebugName = document.getElementById("whoInDebugName");
+  const whoInDebugSubmit = document.getElementById("whoInDebugSubmit");
+  const whoInDebugResult = document.getElementById("whoInDebugResult");
   const mobileTopBar = document.getElementById("mobileTopBar");
   const btnMenu = document.getElementById("btnMenu");
   const btnLeaderboard = document.getElementById("btnLeaderboard");
@@ -85,6 +91,7 @@
   const menuBtnContributions = document.getElementById("menuBtnContributions");
   const menuBtnClear = document.getElementById("menuBtnClear");
   const menuBtnPending = document.getElementById("menuBtnPending");
+  const menuBtnWhoInDebug = document.getElementById("menuBtnWhoInDebug");
   const leaderboardModal = document.getElementById("leaderboardModal");
   const leaderboardModalClose = document.getElementById("leaderboardModalClose");
   const leaderboardBodyMobile = document.getElementById("leaderboardBodyMobile");
@@ -223,6 +230,7 @@
     if (!contribCostModal.classList.contains("hidden")) return false;
     if (!contribSliderModal.classList.contains("hidden")) return false;
     if (!pendingModal.classList.contains("hidden")) return false;
+    if (whoInDebugModal && !whoInDebugModal.classList.contains("hidden")) return false;
     if (leaderboardModal && !leaderboardModal.classList.contains("hidden")) return false;
     if (menuPanel && !menuPanel.classList.contains("hidden")) return false;
     return true;
@@ -259,6 +267,9 @@
     menuBtnContributions.classList.toggle("hidden", btnContributions.classList.contains("hidden"));
     menuBtnClear.classList.toggle("hidden", btnClear.classList.contains("hidden"));
     menuBtnPending.classList.toggle("hidden", btnPending.classList.contains("hidden"));
+    if (menuBtnWhoInDebug) {
+      menuBtnWhoInDebug.classList.toggle("hidden", btnWhoInDebug.classList.contains("hidden"));
+    }
 
     if (!pointsDisplay.classList.contains("hidden")) {
       menuPointsRow.classList.remove("hidden");
@@ -303,6 +314,7 @@
   function updateAuthUI() {
     pendingNotice.classList.add("hidden");
     btnPending.classList.add("hidden");
+    if (btnWhoInDebug) btnWhoInDebug.classList.add("hidden");
 
     if (currentUser) {
       btnLogin.classList.add("hidden");
@@ -330,6 +342,7 @@
         pointsValue.textContent = "\u221E";
         btnClear.classList.remove("hidden");
         btnPending.classList.remove("hidden");
+        if (btnWhoInDebug) btnWhoInDebug.classList.remove("hidden");
       } else {
         pointsValue.textContent = currentUser.points;
         btnClear.classList.add("hidden");
@@ -1177,6 +1190,59 @@
     pendingModal.classList.add("hidden");
   }
 
+  function openWhoInDebugModal() {
+    if (!whoInDebugModal) return;
+    closeMenu();
+    whoInDebugModal.classList.remove("hidden");
+    if (whoInDebugResult) whoInDebugResult.textContent = "";
+    if (whoInDebugName) {
+      whoInDebugName.focus();
+      whoInDebugName.select();
+    }
+  }
+
+  function closeWhoInDebugModal() {
+    if (whoInDebugModal) whoInDebugModal.classList.add("hidden");
+  }
+
+  async function submitWhoInDebug() {
+    if (!whoInDebugResult || !whoInDebugName) return;
+    const name = whoInDebugName.value.trim();
+    if (!name) {
+      whoInDebugResult.textContent = "Enter a name.";
+      return;
+    }
+    if (!currentUser || !isAdmin()) return;
+    whoInDebugResult.textContent = "Checking…";
+    try {
+      const r = await fetch("/api/admin/check-whoin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: currentUser.username, name }),
+      });
+      let data = {};
+      try {
+        data = await r.json();
+      } catch (_) {
+        whoInDebugResult.textContent = "HTTP " + r.status + " (invalid JSON)";
+        return;
+      }
+      if (!r.ok) {
+        whoInDebugResult.textContent = data.error || "HTTP " + r.status;
+        return;
+      }
+      if (data.present) {
+        whoInDebugResult.textContent =
+          "Present — matched: " + (data.matched != null ? data.matched : "") + "\nOptions loaded: " + data.options_count;
+      } else {
+        whoInDebugResult.textContent =
+          "Not in list.\nOptions loaded: " + data.options_count;
+      }
+    } catch (e) {
+      whoInDebugResult.textContent = String(e);
+    }
+  }
+
   async function refreshPendingList() {
     if (!currentUser || !isAdmin()) return;
     try {
@@ -1838,6 +1904,7 @@
   if (menuBtnContributions) menuBtnContributions.addEventListener("click", openContribModal);
   if (menuBtnClear) menuBtnClear.addEventListener("click", adminClearAll);
   if (menuBtnPending) menuBtnPending.addEventListener("click", openPendingModal);
+  if (menuBtnWhoInDebug) menuBtnWhoInDebug.addEventListener("click", openWhoInDebugModal);
 
   if (btnLeaderboard && leaderboardModal) {
     btnLeaderboard.addEventListener("click", () => {

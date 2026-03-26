@@ -19,6 +19,8 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
+import whoisin_check
+
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -70,56 +72,12 @@ def post_report(base_url: str, secret: str, present: list[str], timeout: float =
         return json.loads(resp.read().decode())
 
 
-def real_name_present(real_name: str, options_text_lower: list[str]) -> bool:
-    parts = [p for p in real_name.lower().split() if p]
-    if not parts:
-        return False
-    for line in options_text_lower:
-        if all(part in line for part in parts):
-            return True
-    return False
-
-
-def fetch_whoisin_options(whoisin_url: str) -> list[str]:
-    from playwright.sync_api import sync_playwright
-
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        try:
-            page = browser.new_page()
-            page.goto(whoisin_url, wait_until="networkidle", timeout=60000)
-            page.wait_for_selector("select#whoIsInSelect", timeout=60000)
-            texts = page.locator("select#whoIsInSelect option").all_inner_texts()
-        finally:
-            browser.close()
-    out: list[str] = []
-    for t in texts:
-        s = (t or "").strip().lower()
-        if s:
-            out.append(s)
-    return out
-
-
-def compute_present_usernames(
-    targets: list[dict[str, str]], options_text_lower: list[str]
-) -> list[str]:
-    present: list[str] = []
-    for row in targets:
-        u = row.get("username", "")
-        rn = row.get("real_name", "") or ""
-        if not u:
-            continue
-        if real_name_present(rn, options_text_lower):
-            present.append(u)
-    return present
-
-
 def run_once(
     base_url: str, secret: str, whoisin_url: str
 ) -> tuple[list[str], dict[str, Any]]:
     targets = fetch_targets(base_url, secret)
-    options_lower = fetch_whoisin_options(whoisin_url)
-    present = compute_present_usernames(targets, options_lower)
+    options_lower = whoisin_check.fetch_whoisin_options_lower(whoisin_url)
+    present = whoisin_check.compute_present_usernames(targets, options_lower)
     result = post_report(base_url, secret, present)
     return present, result
 

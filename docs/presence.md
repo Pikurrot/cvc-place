@@ -11,7 +11,9 @@ The **admin** account (`admin_username` in `config.yaml`) is excluded.
    - `POST /api/presence-report` with JSON `{"secret":"...","present":["username",...]}`
 2. **`presence_worker.py`** — runs on a machine that can reach both the app HTTP server and WhoIsIn (usually your home server + SSH tunnel into CVC).
 
-The browser-visible `GET /api/config` response **does not** include `presence_worker_secret`.
+The browser-visible `GET /api/config` response **does not** include `presence_worker_secret` or `whoisin_url`.
+
+**Admin debug:** signed-in admins can use the in-app **WhoIsIn** control to type an arbitrary name and call `POST /api/admin/check-whoin`, which runs the same Playwright fetch and word-part matching as the worker. Configure `whoisin_url` in `config.yaml` (commented example) or set `WHOISIN_URL` on the server; the **machine running `server.py`** must reach that URL (often the same host where your SSH tunnel listens). If Playwright/Chromium is missing or the page is unreachable, the endpoint returns 503 with an error message.
 
 ## What the secret is (and is not)
 

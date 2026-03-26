@@ -17,3 +17,6 @@ admin_username: admin
 # not committed). Optional fallback: presence_worker_secret below. Not related to SSH. See docs/presence.md.
 # presence_worker_secret: only-if-not-using-env
 cvc_presence_interval_seconds: 900
+# Optional: WhoIsIn page URL for admin debug (POST /api/admin/check-whoin). Not exposed on GET /api/config.
+# The server process must be able to open this URL (same machine as tunnel/worker is typical). Or set WHOISIN_URL in the environment.
+whoisin_url: http://127.0.0.1:8080/icarwac/whoIsIn.php

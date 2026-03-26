@@ -32,6 +32,7 @@
         <button type="button" id="menuBtnContributions" class="hidden">Contributions</button>
         <button type="button" id="menuBtnClear" class="hidden menu-btn-danger">Clear</button>
         <button type="button" id="menuBtnPending" class="hidden">Pending</button>
+        <button type="button" id="menuBtnWhoInDebug" class="hidden">WhoIsIn</button>
       </div>
     </div>
   </div>
@@ -62,6 +63,7 @@
     <button id="btnContributions" class="hidden">Contributions</button>
     <button id="btnClear" class="hidden">Clear</button>
     <button id="btnPending" class="hidden">Pending</button>
+    <button type="button" id="btnWhoInDebug" class="hidden" title="WhoIsIn lookup (debug)">WhoIsIn</button>
   </div>
 
   <div id="pendingNotice" class="hidden">Request to join sent, admin will accept you soon!</div>
@@ -85,6 +87,21 @@
 
   <!-- Toast container (top right) -->
   <div id="toastContainer"></div>
+
+  <!-- Admin: WhoIsIn debug lookup -->
+  <div id="whoInDebugModal" class="modal hidden">
+    <div class="modal-content who-in-debug-modal-content">
+      <button type="button" id="whoInDebugClose" class="auth-close" aria-label="Close">&times;</button>
+      <h3>WhoIsIn (debug)</h3>
+      <p class="who-in-debug-hint">Check if a name appears on the CVC list (same matching as the presence worker). Server must reach <code>whoisin_url</code>.</p>
+      <div class="who-in-debug-field">
+        <label for="whoInDebugName">Name</label>
+        <input type="text" id="whoInDebugName" placeholder="First Last" autocomplete="off">
+      </div>
+      <button type="button" id="whoInDebugSubmit" class="who-in-debug-submit">Check</button>
+      <pre id="whoInDebugResult" class="who-in-debug-result" aria-live="polite"></pre>
+    </div>
+  </div>
 
   <!-- Admin: pending registrations -->
   <div id="pendingModal" class="modal hidden">

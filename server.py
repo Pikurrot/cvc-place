@@ -87,7 +87,7 @@ def parse_config():
 
 
 # Never expose these keys via GET /api/config (browser-visible).
-_PUBLIC_CONFIG_EXCLUDE_KEYS = frozenset({"presence_worker_secret"})
+_PUBLIC_CONFIG_EXCLUDE_KEYS = frozenset({"presence_worker_secret", "whoisin_url"})
 
 
 def public_config():
@@ -230,6 +230,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if self.path == "/api/presence-report":
             self._handle_presence_report()
             return
+        if self.path == "/api/admin/check-whoin":
+            self._handle_admin_check_whoin()
+            return
         self.send_error(404)
 
     def _handle_presence_targets(self):
@@ -278,6 +281,53 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         finally:
             conn.close()
         _json_response(self, 200, {"ok": True, "points_awarded": credits})
+
+    def _handle_admin_check_whoin(self):
+        length = int(self.headers.get("Content-Length", 0))
+        raw = self.rfile.read(length)
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError:
+            _json_response(self, 400, {"error": "Invalid JSON"})
+            return
+        admin_u = payload.get("username", "")
+        if not _is_admin(admin_u):
+            _json_response(self, 403, {"error": "Admin only"})
+            return
+        name = (payload.get("name") or "").strip()
+        if not name:
+            _json_response(self, 400, {"error": "Missing name"})
+            return
+        wu = parse_config().get("whoisin_url", "")
+        if isinstance(wu, str):
+            wu = wu.strip()
+        else:
+            wu = ""
+        if not wu:
+            wu = os.environ.get("WHOISIN_URL", "").strip()
+        if not wu:
+            _json_response(self, 503, {"error": "whoisin_url not configured"})
+            return
+        import whoisin_check
+        try:
+            entries = whoisin_check.fetch_whoisin_option_entries(wu)
+        except ImportError as e:
+            _json_response(self, 503, {"error": "Playwright not installed: " + str(e)})
+            return
+        except Exception as e:
+            _json_response(self, 503, {"error": str(e)})
+            return
+        present, matched = whoisin_check.check_name_present(name, entries)
+        _json_response(
+            self,
+            200,
+            {
+                "ok": True,
+                "present": present,
+                "matched": matched,
+                "options_count": len(entries),
+            },
+        )
 
     def _handle_pending_users(self):
         from urllib.parse import urlparse, parse_qs

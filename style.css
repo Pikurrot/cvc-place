@@ -188,6 +188,75 @@ body {
   padding: 16px;
 }
 
+/* ── Admin WhoIsIn debug modal ── */
+
+.who-in-debug-modal-content {
+  max-width: 400px;
+}
+
+.who-in-debug-hint {
+  font-size: 13px;
+  color: #666;
+  margin: -8px 0 14px;
+  line-height: 1.45;
+}
+
+.who-in-debug-hint code {
+  font-size: 12px;
+  background: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.who-in-debug-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.who-in-debug-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #444;
+}
+
+.who-in-debug-field input {
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+.who-in-debug-submit {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  background: #1565c0;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.who-in-debug-submit:hover {
+  background: #0d47a1;
+}
+
+.who-in-debug-result {
+  margin: 16px 0 0;
+  padding: 12px;
+  min-height: 3em;
+  background: #f8f8f8;
+  border-radius: 8px;
+  border: 1px solid #e8e8e8;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: ui-monospace, monospace;
+}
+
 /* ── Modals (shared) ── */
 
 .modal {
