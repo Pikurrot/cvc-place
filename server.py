@@ -6,6 +6,7 @@ import math
 import os
 import re
 import base64
+import time
 import uuid
 import urllib.request
 
@@ -18,7 +19,33 @@ PLACEMENTS_FILE = os.path.join(BASE_DIR, "placements.json")
 CONFIG_FILE = os.path.join(BASE_DIR, "config.yaml")
 USERS_FILE = os.path.join(BASE_DIR, "users.json")
 CONTRIBUTIONS_FILE = os.path.join(BASE_DIR, "contributions.json")
+DOTENV_FILE = os.path.join(BASE_DIR, ".env")
 
+
+def _load_dotenv():
+    """Populate os.environ from .env if present (no extra deps). Does not override existing env."""
+    if not os.path.isfile(DOTENV_FILE):
+        return
+    with open(DOTENV_FILE, "r") as f:
+        for raw in f:
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+            if line.startswith("export "):
+                line = line[7:].strip()
+            if "=" not in line:
+                continue
+            key, _, val = line.partition("=")
+            key = key.strip()
+            if not key or key in os.environ:
+                continue
+            val = val.strip()
+            if len(val) >= 2 and val[0] == val[-1] and val[0] in "\"'":
+                val = val[1:-1]
+            os.environ[key] = val
+
+
+_load_dotenv()
 db_store.configure(BASE_DIR)
 
 MIME_TO_EXT = {
@@ -57,6 +84,34 @@ def parse_config():
             except ValueError:
                 cfg[key] = val
     return cfg
+
+
+# Never expose these keys via GET /api/config (browser-visible).
+_PUBLIC_CONFIG_EXCLUDE_KEYS = frozenset({"presence_worker_secret"})
+
+
+def public_config():
+    cfg = parse_config()
+    return {k: v for k, v in cfg.items() if k not in _PUBLIC_CONFIG_EXCLUDE_KEYS}
+
+
+def _presence_secret_expected() -> str:
+    """Shared secret for presence worker API only — not your SSH password."""
+    for key in ("CVC_PRESENCE_SECRET", "PRESENCE_WORKER_SECRET"):
+        v = os.environ.get(key, "").strip()
+        if v:
+            return v
+    v = parse_config().get("presence_worker_secret", "")
+    if isinstance(v, str) and v.strip():
+        return v.strip()
+    return ""
+
+
+def _presence_secret_ok(secret: str) -> bool:
+    expected = _presence_secret_expected()
+    if not expected:
+        return False
+    return secret == expected
 
 
 def _is_admin(username):
@@ -112,7 +167,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 conn.close()
             return
         if self.path == "/api/config":
-            _json_response(self, 200, parse_config())
+            _json_response(self, 200, public_config())
+            return
+        if self.path.startswith("/api/presence-targets"):
+            self._handle_presence_targets()
             return
         if self.path == "/api/contributions":
             conn = db_store.get_conn()
@@ -169,7 +227,57 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if self.path == "/api/contributions/remove":
             self._handle_contrib_remove()
             return
+        if self.path == "/api/presence-report":
+            self._handle_presence_report()
+            return
         self.send_error(404)
+
+    def _handle_presence_targets(self):
+        from urllib.parse import urlparse, parse_qs
+
+        qs = parse_qs(urlparse(self.path).query)
+        secret = qs.get("secret", [""])[0]
+        if not _presence_secret_ok(secret):
+            _json_response(self, 403, {"error": "Forbidden"})
+            return
+        admin_name = parse_config().get("admin_username", "")
+        conn = db_store.get_conn()
+        try:
+            targets = db_store.list_presence_targets(conn, admin_name)
+        finally:
+            conn.close()
+        _json_response(self, 200, targets)
+
+    def _handle_presence_report(self):
+        length = int(self.headers.get("Content-Length", 0))
+        raw = self.rfile.read(length)
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError:
+            _json_response(self, 400, {"error": "Invalid JSON"})
+            return
+        secret = str(payload.get("secret", ""))
+        if not _presence_secret_ok(secret):
+            _json_response(self, 403, {"error": "Forbidden"})
+            return
+        present = payload.get("present", [])
+        if not isinstance(present, list):
+            _json_response(self, 400, {"error": "present must be a list"})
+            return
+        cfg = parse_config()
+        interval = float(cfg.get("cvc_presence_interval_seconds", 900))
+        admin_name = cfg.get("admin_username", "")
+        conn = db_store.get_conn()
+        try:
+            credits = db_store.apply_presence_report(
+                conn, {str(x) for x in present}, time.time(), interval, admin_name
+            )
+        except Exception as e:
+            _json_response(self, 500, {"error": str(e)})
+            return
+        finally:
+            conn.close()
+        _json_response(self, 200, {"ok": True, "points_awarded": credits})
 
     def _handle_pending_users(self):
         from urllib.parse import urlparse, parse_qs
@@ -282,17 +390,30 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 for u in credited:
                     if u:
                         img_counts[u] = img_counts.get(u, 0) + 1
+            interval_pres = float(cfg.get("cvc_presence_interval_seconds", 900))
+            now_unix = time.time()
             board = []
             for row in conn.execute(
-                "SELECT username, points, total_spent FROM users WHERE approved = 1 AND username != ?",
+                """SELECT u.username, u.points, u.total_spent, s.last_credit_unix
+                   FROM users u
+                   LEFT JOIN cvc_presence_state s ON s.username = u.username
+                   WHERE u.approved = 1 AND u.username != ?""",
                 (admin_name,),
             ):
                 u = row["username"]
+                last = row["last_credit_unix"]
+                if last is None:
+                    cvc_min = 0.0
+                else:
+                    elapsed = max(0.0, now_unix - float(last))
+                    elapsed = min(elapsed, interval_pres)
+                    cvc_min = round(elapsed / 60.0, 1)
                 board.append({
                     "username": u,
                     "total_spent": row["total_spent"],
                     "images": img_counts.get(u, 0),
                     "points": row["points"],
+                    "cvc_presence_minutes": cvc_min,
                 })
             board.sort(key=lambda e: e["total_spent"], reverse=True)
         finally:

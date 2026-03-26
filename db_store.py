@@ -7,7 +7,7 @@ import json
 import os
 import sqlite3
 from contextlib import contextmanager
-from typing import Any, Optional
+from typing import Any, Optional, Set
 
 _BASE_DIR: Optional[str] = None
 _DB_PATH: Optional[str] = None
@@ -71,6 +71,11 @@ def init_schema(conn: sqlite3.Connection) -> None:
             contribution_id TEXT NOT NULL REFERENCES contributions(id) ON DELETE CASCADE,
             username TEXT NOT NULL,
             amount INTEGER NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS cvc_presence_state (
+            username TEXT PRIMARY KEY REFERENCES users(username) ON DELETE CASCADE,
+            last_credit_unix REAL NOT NULL
         );
         """
     )
@@ -303,6 +308,57 @@ def list_pending_users(conn: sqlite3.Connection, admin_username: str) -> list[di
         (admin_username or "",),
     ).fetchall()
     return [{"username": r["username"], "real_name": r["real_name"] or ""} for r in rows]
+
+
+def list_presence_targets(conn: sqlite3.Connection, admin_username: str) -> list[dict[str, str]]:
+    """Approved users with non-empty real_name, excluding the admin account."""
+    rows = conn.execute(
+        """SELECT username, real_name FROM users
+           WHERE approved = 1 AND TRIM(COALESCE(real_name, '')) != '' AND username != ?
+           ORDER BY username""",
+        (admin_username or "",),
+    ).fetchall()
+    return [{"username": r["username"], "real_name": r["real_name"] or ""} for r in rows]
+
+
+def apply_presence_report(
+    conn: sqlite3.Connection,
+    present_usernames: Set[str],
+    now_unix: float,
+    interval_sec: float,
+    admin_username: str,
+) -> int:
+    """Award at most one point per user per call when interval elapsed. Reset state when absent."""
+    credits = 0
+    with mutating_transaction(conn):
+        targets = list_presence_targets(conn, admin_username)
+        target_names = {t["username"] for t in targets}
+        present = set(present_usernames) & target_names
+
+        for t in targets:
+            u = t["username"]
+            if u not in present:
+                conn.execute("DELETE FROM cvc_presence_state WHERE username = ?", (u,))
+                continue
+
+            row = conn.execute(
+                "SELECT last_credit_unix FROM cvc_presence_state WHERE username = ?", (u,)
+            ).fetchone()
+            if row is None:
+                conn.execute(
+                    "INSERT INTO cvc_presence_state (username, last_credit_unix) VALUES (?, ?)",
+                    (u, now_unix),
+                )
+            else:
+                last = float(row["last_credit_unix"])
+                if now_unix - last >= interval_sec:
+                    conn.execute("UPDATE users SET points = points + 1 WHERE username = ?", (u,))
+                    conn.execute(
+                        "UPDATE cvc_presence_state SET last_credit_unix = ? WHERE username = ?",
+                        (now_unix, u),
+                    )
+                    credits += 1
+    return credits
 
 
 @contextmanager

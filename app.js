@@ -109,6 +109,7 @@
     starting_points: 1000,
     points_area_divisor: 25000,
     warning_duration: 5,
+    cvc_presence_interval_seconds: 900,
   };
 
   // ── Canvas transform state ──
@@ -638,6 +639,25 @@
     }
   }
 
+  function setLeaderboardCvcHeader(showCvc, headEl) {
+    if (!headEl) return;
+    const maxMin = Math.round((cfg.cvc_presence_interval_seconds || 900) / 60);
+    const tip = "Minutes in CVC this interval (0\u2013" + maxMin + " min max per cycle)";
+    if (showCvc) {
+      let th = headEl.querySelector(".lb-cvc");
+      if (!th) {
+        th = document.createElement("span");
+        th.className = "lb-cvc";
+        th.textContent = "CVC";
+        headEl.appendChild(th);
+      }
+      th.title = tip;
+    } else {
+      const existing = headEl.querySelector(".lb-cvc");
+      if (existing) existing.remove();
+    }
+  }
+
   function appendLeaderboardRow(container, entry, i, showPts) {
     const row = document.createElement("div");
     row.className = "lb-row";
@@ -674,6 +694,11 @@
       pts.className = "lb-pts";
       pts.textContent = entry.points;
       row.appendChild(pts);
+      const cvc = document.createElement("span");
+      cvc.className = "lb-cvc";
+      const mins = entry.cvc_presence_minutes;
+      cvc.textContent = mins !== undefined && mins !== null ? String(mins) : "0";
+      row.appendChild(cvc);
     }
 
     container.appendChild(row);
@@ -688,15 +713,19 @@
 
       const showPts = isAdmin();
       if (showPts) {
-        leaderboard.classList.add("show-pts");
-        if (leaderboardTableMobile) leaderboardTableMobile.classList.add("show-pts");
+        leaderboard.classList.add("show-pts", "show-cvc");
+        if (leaderboardTableMobile) leaderboardTableMobile.classList.add("show-pts", "show-cvc");
         setLeaderboardPtsHeader(true, leaderboardHead);
         setLeaderboardPtsHeader(true, leaderboardHeadMobile);
+        setLeaderboardCvcHeader(true, leaderboardHead);
+        setLeaderboardCvcHeader(true, leaderboardHeadMobile);
       } else {
-        leaderboard.classList.remove("show-pts");
-        if (leaderboardTableMobile) leaderboardTableMobile.classList.remove("show-pts");
+        leaderboard.classList.remove("show-pts", "show-cvc");
+        if (leaderboardTableMobile) leaderboardTableMobile.classList.remove("show-pts", "show-cvc");
         setLeaderboardPtsHeader(false, leaderboardHead);
         setLeaderboardPtsHeader(false, leaderboardHeadMobile);
+        setLeaderboardCvcHeader(false, leaderboardHead);
+        setLeaderboardCvcHeader(false, leaderboardHeadMobile);
       }
 
       data.forEach((entry, i) => {

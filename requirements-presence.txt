@@ -1,0 +1,3 @@
+# Optional: WhoIsIn presence worker (presence_worker.py)
+# Install browser bits: playwright install chromium
+playwright>=1.40.0

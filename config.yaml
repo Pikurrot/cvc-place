@@ -1,4 +1,4 @@
-version: 1.0.0
+version: 1.1.0
 speed_factor: 0.04
 zoom_sensitivity: 0.001
 min_zoom: 0.05
@@ -13,3 +13,7 @@ starting_points: 1000
 points_area_divisor: 25000
 warning_duration: 5
 admin_username: admin
+# WhoIsIn presence: put the API shared secret in .env as CVC_PRESENCE_SECRET (recommended,
+# not committed). Optional fallback: presence_worker_secret below. Not related to SSH. See docs/presence.md.
+# presence_worker_secret: only-if-not-using-env
+cvc_presence_interval_seconds: 900

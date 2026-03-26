@@ -736,6 +736,10 @@ body {
   width: 280px;
 }
 
+#leaderboard.show-pts.show-cvc {
+  width: 326px;
+}
+
 #leaderboardHeader {
   padding: 10px 14px 8px;
   font-size: 13px;
@@ -843,6 +847,20 @@ body {
 }
 
 #leaderboard.show-pts .lb-pts {
+  display: inline;
+}
+
+.lb-cvc {
+  display: none;
+  width: 40px;
+  flex-shrink: 0;
+  text-align: right;
+  color: #607d8b;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+}
+
+#leaderboard.show-cvc .lb-cvc {
   display: inline;
 }
 
@@ -1219,6 +1237,10 @@ body {
 }
 
 #leaderboardTableMobile.show-pts .lb-pts {
+  display: inline;
+}
+
+#leaderboardTableMobile.show-cvc .lb-cvc {
   display: inline;
 }
 
