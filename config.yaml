@@ -1,4 +1,4 @@
-version: 1.3.0
+version: 1.3.1
 speed_factor: 0.04
 zoom_sensitivity: 0.001
 min_zoom: 0.05
@@ -10,7 +10,7 @@ max_image_pct: 0.5
 pen_size: 4
 eraser_size: 4
 starting_points: 50
-points_area_divisor: 100000
+points_area_divisor: 10000
 warning_duration: 5
 admin_username: admin
 # WhoIsIn presence: put the API shared secret in .env as CVC_PRESENCE_SECRET (recommended,
