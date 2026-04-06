@@ -5,12 +5,14 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-# Repo at ~/cvc-place — if elsewhere, change %h/cvc-place in all three units.
-WorkingDirectory=%h/cvc-place
-EnvironmentFile=-%h/cvc-place/.env
-ExecStart=%h/cvc-place/scripts/cvc_tunnel.sh
+# Repo at ~/cvc-place — if elsewhere, change /home/eric_server/repos/cvc-place in all three units.
+WorkingDirectory=/home/eric_server/repos/cvc-place
+EnvironmentFile=-/home/eric_server/repos/cvc-place/.env
+ExecStart=/home/eric_server/repos/cvc-place/scripts/cvc_tunnel.sh
 Restart=always
 RestartSec=8
+User=eric_server
+Group=eric_server
 
 [Install]
-WantedBy=default.target
+WantedBy=multi-user.target

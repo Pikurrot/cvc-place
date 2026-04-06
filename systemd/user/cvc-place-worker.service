@@ -4,11 +4,13 @@ After=network-online.target cvc-tunnel.service cvc-place.service
 
 [Service]
 Type=simple
-WorkingDirectory=%h/cvc-place
-EnvironmentFile=-%h/cvc-place/.env
-ExecStart=/usr/bin/python3 %h/cvc-place/presence_worker.py
+WorkingDirectory=/home/eric_server/repos/cvc-place
+EnvironmentFile=-/home/eric_server/repos/cvc-place/.env
+ExecStart=/usr/bin/python3 /home/eric_server/repos/cvc-place/presence_worker.py
 Restart=on-failure
 RestartSec=15
+User=eric_server
+Group=eric_server
 
 [Install]
-WantedBy=default.target
+WantedBy=multi-user.target

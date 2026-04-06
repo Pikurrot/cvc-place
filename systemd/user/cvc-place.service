@@ -6,13 +6,15 @@ Wants=cvc-place-worker.service
 
 [Service]
 Type=simple
-WorkingDirectory=%h/cvc-place
-EnvironmentFile=-%h/cvc-place/.env
-ExecStart=/usr/bin/python3 %h/cvc-place/server.py
+WorkingDirectory=/home/eric_server/repos/cvc-place
+EnvironmentFile=-/home/eric_server/repos/cvc-place/.env
+ExecStart=/usr/bin/python3 /home/eric_server/repos/cvc-place/server.py
 Restart=on-failure
 RestartSec=5
+User=eric_server
+Group=eric_server
 
 [Install]
-WantedBy=default.target
+WantedBy=multi-user.target
 Also=cvc-tunnel.service
 Also=cvc-place-worker.service
