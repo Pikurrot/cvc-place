@@ -4,7 +4,18 @@ Used by presence_worker.py and server admin debug endpoint.
 """
 from __future__ import annotations
 
+import time
 from typing import Any
+
+
+def _wait_until_options_ready(page: Any, *, timeout_ms: int = 90_000) -> None:
+    """WhoIsIn fills <option>s after the <select> exists; poll instead of 'visible' waits."""
+    deadline = time.monotonic() + timeout_ms / 1000.0
+    loc = page.locator("select#whoIsInSelect option")
+    while time.monotonic() < deadline:
+        if loc.count() > 0:
+            return
+        page.wait_for_timeout(150)
 
 
 def fetch_whoisin_option_entries(whoisin_url: str) -> list[tuple[str, str]]:
@@ -15,8 +26,14 @@ def fetch_whoisin_option_entries(whoisin_url: str) -> list[tuple[str, str]]:
         browser = p.chromium.launch(headless=True)
         try:
             page = browser.new_page()
-            page.goto(whoisin_url, wait_until="networkidle", timeout=60000)
-            page.wait_for_selector("select#whoIsInSelect", timeout=60000)
+            # "networkidle" often never completes; "visible" fails if CSS hides the <select>.
+            page.goto(whoisin_url, wait_until="domcontentloaded", timeout=120_000)
+            page.wait_for_selector(
+                "select#whoIsInSelect",
+                state="attached",
+                timeout=120_000,
+            )
+            _wait_until_options_ready(page, timeout_ms=90_000)
             texts: list[Any] = page.locator("select#whoIsInSelect option").all_inner_texts()
         finally:
             browser.close()
