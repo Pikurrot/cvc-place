@@ -5,7 +5,9 @@ Used by presence_worker.py and server admin debug endpoint.
 Matching: every *token* from the user's name (after normalization) must appear as a
 substring of the same option line. Tokens are derived from splitting on whitespace and
 common separators (comma, etc.); order does not matter ("Liu Youchen" vs "Youchen Liu").
-Comparison is case-insensitive and accent-insensitive (e.g. José vs Jose).
+Comparison is case-insensitive and **accent-insensitive** (Spanish tíldes / agudos / diéresis,
+e.g. José vs Jose, López vs Lopez, García vs Garcia). Both the user's tokens and each
+WhoIsIn option line are normalized the same way before substring checks.
 """
 from __future__ import annotations
 
@@ -15,7 +17,10 @@ from typing import Any
 
 
 def _fold_for_name_match(s: str) -> str:
-    """NFKC, strip combining marks (accents), then casefold for substring checks."""
+    """
+    NFKC then NFD, strip all combining marks (Unicode Mn: acute, tilde, umlaut, etc.),
+    then casefold. So "López" and "Lopez" both become "lopez" for matching.
+    """
     if not s:
         return ""
     s = unicodedata.normalize("NFKC", s)
