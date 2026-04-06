@@ -1889,6 +1889,20 @@
     if (e.target === pendingModal) closePendingModal();
   });
 
+  if (btnWhoInDebug) btnWhoInDebug.addEventListener("click", openWhoInDebugModal);
+  if (whoInDebugClose) whoInDebugClose.addEventListener("click", closeWhoInDebugModal);
+  if (whoInDebugSubmit) whoInDebugSubmit.addEventListener("click", submitWhoInDebug);
+  if (whoInDebugModal) {
+    whoInDebugModal.addEventListener("click", (e) => {
+      if (e.target === whoInDebugModal) closeWhoInDebugModal();
+    });
+  }
+  if (whoInDebugName) {
+    whoInDebugName.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") submitWhoInDebug();
+    });
+  }
+
   if (btnMenu && menuPanel) {
     btnMenu.addEventListener("click", () => {
       menuPanel.classList.toggle("hidden");

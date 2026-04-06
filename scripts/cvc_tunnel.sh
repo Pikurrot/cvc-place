@@ -14,7 +14,7 @@ fi
 : "${CVC_SSH_HOST:=tunnel.cvc.uab.es}"
 : "${CVC_SSH_USER:=elopezc}"
 : "${CVC_SSH_PORT:=22345}"
-: "${CVC_TUNNEL_LOCAL_PORT:=8080}"
+: "${CVC_TUNNEL_LOCAL_PORT:=8075}"
 : "${CVC_TUNNEL_FORWARD_HOST:=158.109.8.17}"
 : "${CVC_TUNNEL_FORWARD_PORT:=80}"
 

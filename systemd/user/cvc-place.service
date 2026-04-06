@@ -1,0 +1,18 @@
+[Unit]
+Description=cvc-place HTTP server
+After=network-online.target cvc-tunnel.service
+Requires=cvc-tunnel.service
+Wants=cvc-place-worker.service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/cvc-place
+EnvironmentFile=-%h/cvc-place/.env
+ExecStart=/usr/bin/python3 %h/cvc-place/server.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+Also=cvc-tunnel.service
+Also=cvc-place-worker.service

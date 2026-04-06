@@ -114,29 +114,62 @@ With **SSH keys**, run plain `ssh -N -L ...` under systemd or `autossh` without 
 
 Start the tunnel **before** the worker. Use `After=` in systemd so the presence worker starts after the tunnel unit.
 
-## Systemd example (user service)
+## Full stack: tunnel + server + worker (systemd)
 
-`~/.config/systemd/user/cvc-presence-worker.service`:
+Versioned unit files live under [`systemd/user/`](../systemd/user/) in the repo. They assume the clone is at **`~/cvc-place`**. Copy them to `~/.config/systemd/user/` and adjust paths if needed (see [`systemd/user/README.md`](../systemd/user/README.md)).
 
-```ini
-[Unit]
-Description=cvc-place WhoIsIn presence worker
-After=network-online.target
+**Runtime dependencies**
 
-[Service]
-Type=simple
-Environment=CVC_PRESENCE_SECRET=your-secret-here
-Environment=CVC_PLACE_BASE=http://127.0.0.1:8123
-Environment=WHOISIN_URL=http://127.0.0.1:8080/icarwac/whoIsIn.php
-WorkingDirectory=/path/to/cvc-place
-ExecStart=/usr/bin/python3 /path/to/cvc-place/presence_worker.py
-Restart=on-failure
-RestartSec=30
+- **Tunnel:** `openssh-client`, `sshpass`; `.env` must define **`SSHPASS`** (SSH login password) if you use `scripts/cvc_tunnel.sh` non-interactively.
+- **Server (`server.py`):** Python 3 and stdlib + sqlite. For the in-app **WhoIsIn admin debug** (`POST /api/admin/check-whoin`), install the same Playwright stack as the worker on the host that runs the server: `pip install -r requirements-presence.txt` and `playwright install chromium`.
+- **Worker (`presence_worker.py`):** same Playwright install as above.
 
-[Install]
-WantedBy=default.target
+**Configuration (`.env` in repo root, gitignored)**
+
+| Variable | Used by | Purpose |
+|----------|---------|---------|
+| `CVC_PRESENCE_SECRET` | server + worker | Presence API secret (not SSH) |
+| `SSHPASS` | `cvc_tunnel.sh` | SSH password for `sshpass -e` |
+| `CVC_PLACE_BASE` | worker | App base URL (e.g. `http://127.0.0.1:8123`) |
+| `WHOISIN_URL` | worker + server | Tunneled WhoIsIn URL; should match `whoisin_url` in `config.yaml` if set |
+
+Units load `.env` via `EnvironmentFile=-%h/cvc-place/.env` (adjust path if your clone is not `~/cvc-place`).
+
+**Install and start (user session)**
+
+```bash
+mkdir -p ~/.config/systemd/user
+cp /path/to/cvc-place/systemd/user/cvc-tunnel.service ~/.config/systemd/user/
+cp /path/to/cvc-place/systemd/user/cvc-place.service ~/.config/systemd/user/
+cp /path/to/cvc-place/systemd/user/cvc-place-worker.service ~/.config/systemd/user/
+# Edit the three files if the repo is not ~/cvc-place
+chmod +x /path/to/cvc-place/scripts/cvc_tunnel.sh
+systemctl --user daemon-reload
+systemctl --user enable --now cvc-place.service
 ```
 
-Then: `systemctl --user daemon-reload && systemctl --user enable --now cvc-presence-worker`
+`cvc-place.service` **requires** the tunnel and **wants** the worker; its `[Install] Also=` enables **`cvc-tunnel.service`** and **`cvc-place-worker.service`** when you enable the server, so one `enable` wires the trio.
 
-Safer than embedding the secret in the unit file: add `EnvironmentFile=/path/to/cvc-place/.env` under `[Service]` (point at your gitignored `.env`).
+**Sanity check after the tunnel is up**
+
+```bash
+curl -sS -o /dev/null -w "%{http_code}\n" "http://127.0.0.1:8080/icarwac/whoIsIn.php"
+```
+
+Expect `200` (or your chosen local port/path).
+
+**Boot without logging in**
+
+User services stop at logout unless lingering is enabled:
+
+```bash
+loginctl enable-linger "$USER"
+```
+
+**Status**
+
+```bash
+systemctl --user status cvc-tunnel.service cvc-place.service cvc-place-worker.service
+```
+
+The tunnel unit uses **`Restart=always`** so SSH disconnects are retried. For stubborn NAT issues you can switch the tunnel unit to **`autossh`** instead of plain `ssh` (see `man autossh`).

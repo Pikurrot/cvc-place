@@ -1,0 +1,16 @@
+[Unit]
+Description=CVC SSH port forward for WhoIsIn (scripts/cvc_tunnel.sh)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Repo at ~/cvc-place — if elsewhere, change %h/cvc-place in all three units.
+WorkingDirectory=%h/cvc-place
+EnvironmentFile=-%h/cvc-place/.env
+ExecStart=%h/cvc-place/scripts/cvc_tunnel.sh
+Restart=always
+RestartSec=8
+
+[Install]
+WantedBy=default.target

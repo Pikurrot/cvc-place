@@ -1,0 +1,14 @@
+[Unit]
+Description=cvc-place WhoIsIn presence worker
+After=network-online.target cvc-tunnel.service cvc-place.service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/cvc-place
+EnvironmentFile=-%h/cvc-place/.env
+ExecStart=/usr/bin/python3 %h/cvc-place/presence_worker.py
+Restart=on-failure
+RestartSec=15
+
+[Install]
+WantedBy=default.target
