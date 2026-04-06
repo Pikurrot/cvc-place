@@ -19,4 +19,4 @@ admin_username: admin
 cvc_presence_interval_seconds: 900
 # Optional: WhoIsIn page URL for admin debug (POST /api/admin/check-whoin). Not exposed on GET /api/config.
 # The server process must be able to open this URL (same machine as tunnel/worker is typical). Or set WHOISIN_URL in the environment.
-whoisin_url: http://127.0.0.1:8080/icarwac/whoIsIn.php
+whoisin_url: http://127.0.0.1:8075/icarwac/whoIsIn.php
