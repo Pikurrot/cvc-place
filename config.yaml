@@ -8,7 +8,7 @@ grid_step: 50
 min_image_pct: 0.01
 max_image_pct: 0.5
 pen_size: 4
-eraser_size: 4
+eraser_size: 20
 starting_points: 50
 points_area_divisor: 5000
 warning_duration: 5
