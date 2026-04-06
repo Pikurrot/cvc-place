@@ -1,11 +1,55 @@
 """
 Shared Playwright fetch + name matching for IcarWAC WhoIsIn (select#whoIsInSelect).
 Used by presence_worker.py and server admin debug endpoint.
+
+Matching: every *token* from the user's name (after normalization) must appear as a
+substring of the same option line. Tokens are derived from splitting on whitespace and
+common separators (comma, etc.); order does not matter ("Liu Youchen" vs "Youchen Liu").
+Comparison is case-insensitive and accent-insensitive (e.g. José vs Jose).
 """
 from __future__ import annotations
 
 import time
+import unicodedata
 from typing import Any
+
+
+def _fold_for_name_match(s: str) -> str:
+    """NFKC, strip combining marks (accents), then casefold for substring checks."""
+    if not s:
+        return ""
+    s = unicodedata.normalize("NFKC", s)
+    s = unicodedata.normalize("NFD", s)
+    s = "".join(c for c in s if unicodedata.category(c) != "Mn")
+    return s.casefold()
+
+
+def _name_tokens(name: str) -> list[str]:
+    """
+    Split a registered or queried name into folded tokens (no empty entries).
+    Commas / semicolons / slashes count as separators so "Liu,Youchen" works.
+    """
+    raw = (name or "").strip()
+    if not raw:
+        return []
+    s = unicodedata.normalize("NFKC", raw)
+    for ch in ",;|/\u00b7":
+        s = s.replace(ch, " ")
+    tokens: list[str] = []
+    for part in s.split():
+        t = part.strip("._-•·:()[]\"'«»")
+        if not t:
+            continue
+        fold = _fold_for_name_match(t)
+        if fold:
+            tokens.append(fold)
+    return tokens
+
+
+def _line_matches_tokens(line_folded: str, tokens: list[str]) -> bool:
+    if not tokens:
+        return False
+    return all(tok in line_folded for tok in tokens)
 
 
 def _wait_until_options_ready(page: Any, *, timeout_ms: int = 90_000) -> None:
@@ -19,7 +63,7 @@ def _wait_until_options_ready(page: Any, *, timeout_ms: int = 90_000) -> None:
 
 
 def fetch_whoisin_option_entries(whoisin_url: str) -> list[tuple[str, str]]:
-    """Return (lowercase, original_stripped) for each non-empty option."""
+    """Return (folded_match_string, original_stripped) for each non-empty option."""
     from playwright.sync_api import sync_playwright
 
     with sync_playwright() as p:
@@ -41,34 +85,38 @@ def fetch_whoisin_option_entries(whoisin_url: str) -> list[tuple[str, str]]:
     for t in texts:
         orig = (t or "").strip()
         if orig:
-            out.append((orig.lower(), orig))
+            out.append((_fold_for_name_match(orig), orig))
     return out
 
 
 def fetch_whoisin_options_lower(whoisin_url: str) -> list[str]:
+    """Folded strings suitable for real_name_present (kept name for callers)."""
     return [e[0] for e in fetch_whoisin_option_entries(whoisin_url)]
 
 
 def real_name_present(real_name: str, options_text_lower: list[str]) -> bool:
-    parts = [p for p in real_name.lower().split() if p]
-    if not parts:
+    """
+    True if some option line contains every name token as a substring.
+    options_text_lower: folded strings (same as first element of fetch_whoisin_option_entries).
+    """
+    tokens = _name_tokens(real_name)
+    if not tokens:
         return False
     for line in options_text_lower:
-        if all(part in line for part in parts):
+        if _line_matches_tokens(line, tokens):
             return True
     return False
 
 
 def check_name_present(query_name: str, entries: list[tuple[str, str]]) -> tuple[bool, str | None]:
     """
-    Word-part match (same rule as presence worker): every word in query_name must
-    appear as substring in the same option line. Returns (present, matched_original_line).
+    Same token rule as real_name_present. Returns (present, matched_original_line).
     """
-    parts = [p for p in query_name.lower().split() if p]
-    if not parts:
+    tokens = _name_tokens(query_name)
+    if not tokens:
         return False, None
     for low, orig in entries:
-        if all(part in low for part in parts):
+        if _line_matches_tokens(low, tokens):
             return True, orig
     return False, None
 

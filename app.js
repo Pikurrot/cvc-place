@@ -92,6 +92,16 @@
   const menuBtnClear = document.getElementById("menuBtnClear");
   const menuBtnPending = document.getElementById("menuBtnPending");
   const menuBtnWhoInDebug = document.getElementById("menuBtnWhoInDebug");
+  const btnUsersAdmin = document.getElementById("btnUsersAdmin");
+  const usersAdminModal = document.getElementById("usersAdminModal");
+  const usersAdminClose = document.getElementById("usersAdminClose");
+  const usersAdminList = document.getElementById("usersAdminList");
+  const menuBtnUsersAdmin = document.getElementById("menuBtnUsersAdmin");
+  const btnHelp = document.getElementById("btnHelp");
+  const helpModal = document.getElementById("helpModal");
+  const helpClose = document.getElementById("helpClose");
+  const helpBody = document.getElementById("helpBody");
+  const menuBtnHelp = document.getElementById("menuBtnHelp");
   const leaderboardModal = document.getElementById("leaderboardModal");
   const leaderboardModalClose = document.getElementById("leaderboardModalClose");
   const leaderboardBodyMobile = document.getElementById("leaderboardBodyMobile");
@@ -100,6 +110,7 @@
   const appVersion = document.getElementById("appVersion");
 
   const compactMq = window.matchMedia("(max-width: 768px)");
+  const HELP_SEEN_KEY = "cvc_place_help_seen";
 
   // ── Config (loaded from server) ──
   let cfg = {
@@ -231,6 +242,8 @@
     if (!contribSliderModal.classList.contains("hidden")) return false;
     if (!pendingModal.classList.contains("hidden")) return false;
     if (whoInDebugModal && !whoInDebugModal.classList.contains("hidden")) return false;
+    if (usersAdminModal && !usersAdminModal.classList.contains("hidden")) return false;
+    if (helpModal && !helpModal.classList.contains("hidden")) return false;
     if (leaderboardModal && !leaderboardModal.classList.contains("hidden")) return false;
     if (menuPanel && !menuPanel.classList.contains("hidden")) return false;
     return true;
@@ -269,6 +282,9 @@
     menuBtnPending.classList.toggle("hidden", btnPending.classList.contains("hidden"));
     if (menuBtnWhoInDebug) {
       menuBtnWhoInDebug.classList.toggle("hidden", btnWhoInDebug.classList.contains("hidden"));
+    }
+    if (menuBtnUsersAdmin) {
+      menuBtnUsersAdmin.classList.toggle("hidden", btnUsersAdmin.classList.contains("hidden"));
     }
 
     if (!pointsDisplay.classList.contains("hidden")) {
@@ -315,6 +331,7 @@
     pendingNotice.classList.add("hidden");
     btnPending.classList.add("hidden");
     if (btnWhoInDebug) btnWhoInDebug.classList.add("hidden");
+    if (btnUsersAdmin) btnUsersAdmin.classList.add("hidden");
 
     if (currentUser) {
       btnLogin.classList.add("hidden");
@@ -343,6 +360,7 @@
         btnClear.classList.remove("hidden");
         btnPending.classList.remove("hidden");
         if (btnWhoInDebug) btnWhoInDebug.classList.remove("hidden");
+        if (btnUsersAdmin) btnUsersAdmin.classList.remove("hidden");
       } else {
         pointsValue.textContent = currentUser.points;
         btnClear.classList.add("hidden");
@@ -1178,6 +1196,136 @@
     refreshLeaderboard();
   }
 
+  function forceLogoutAfterRemoved() {
+    closeMenu();
+    adminDeselectImage();
+    currentUser = null;
+    localStorage.removeItem("cvc_username");
+    updateAuthUI();
+    refreshLeaderboard();
+  }
+
+  // ── Help (HELP.md) ──
+
+  async function openHelpModal() {
+    if (!helpModal || !helpBody) return;
+    closeMenu();
+    helpModal.classList.remove("hidden");
+    if (helpBody.dataset.loaded === "1") return;
+    try {
+      const r = await fetch("/api/help");
+      const text = await r.text();
+      if (!r.ok) {
+        helpBody.textContent = text || "Help could not be loaded.";
+        return;
+      }
+      if (typeof marked !== "undefined" && typeof DOMPurify !== "undefined") {
+        const raw = marked.parse(text);
+        helpBody.innerHTML = DOMPurify.sanitize(raw);
+      } else {
+        helpBody.textContent = text;
+      }
+      helpBody.dataset.loaded = "1";
+    } catch (e) {
+      helpBody.textContent = String(e);
+    }
+  }
+
+  function closeHelpModal() {
+    if (helpModal) helpModal.classList.add("hidden");
+    try {
+      localStorage.setItem(HELP_SEEN_KEY, "1");
+    } catch (_) {}
+  }
+
+  // ── Admin: registered users ──
+
+  async function openUsersAdminModal() {
+    if (!usersAdminModal) return;
+    closeMenu();
+    usersAdminModal.classList.remove("hidden");
+    await refreshUsersAdminList();
+  }
+
+  function closeUsersAdminModal() {
+    if (usersAdminModal) usersAdminModal.classList.add("hidden");
+  }
+
+  async function refreshUsersAdminList() {
+    if (!usersAdminList || !currentUser || !isAdmin()) return;
+    usersAdminList.innerHTML = "";
+    try {
+      const r = await fetch("/api/admin/users?username=" + encodeURIComponent(currentUser.username));
+      const data = await r.json();
+      if (!Array.isArray(data)) {
+        const p = document.createElement("p");
+        p.className = "pending-empty";
+        p.textContent = data.error || "Failed to load users.";
+        usersAdminList.appendChild(p);
+        return;
+      }
+      if (data.length === 0) {
+        const p = document.createElement("p");
+        p.className = "pending-empty";
+        p.textContent = "No registered users (besides admin).";
+        usersAdminList.appendChild(p);
+        return;
+      }
+      data.forEach((u) => {
+        const row = document.createElement("div");
+        row.className = "users-admin-row";
+        const info = document.createElement("div");
+        info.className = "users-admin-row-info";
+        const uEl = document.createElement("div");
+        uEl.className = "users-admin-row-user";
+        uEl.textContent = u.username;
+        const meta = document.createElement("div");
+        meta.className = "users-admin-row-meta";
+        const status = u.approved ? "Approved" : "Pending approval";
+        meta.textContent = (u.real_name || "(no real name)") + " · " + status;
+        info.appendChild(uEl);
+        info.appendChild(meta);
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "users-admin-remove";
+        btn.textContent = "Remove";
+        btn.addEventListener("click", async () => {
+          if (!confirm("Remove user \"" + u.username + "\" permanently? They cannot log in again.")) return;
+          try {
+            const res = await fetch("/api/admin/delete-user", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                username: currentUser.username,
+                target_username: u.username,
+              }),
+            });
+            const out = await res.json();
+            if (!res.ok || !out.ok) {
+              showToast(out.error || "Failed to remove user", "error");
+              return;
+            }
+            showToast("Removed " + u.username, "info");
+            if (currentUser && currentUser.username === u.username) {
+              closeUsersAdminModal();
+              forceLogoutAfterRemoved();
+              return;
+            }
+            await refreshUsersAdminList();
+            await refreshLeaderboard();
+          } catch (e) {
+            showToast("Failed to remove user", "error");
+          }
+        });
+        row.appendChild(info);
+        row.appendChild(btn);
+        usersAdminList.appendChild(row);
+      });
+    } catch (e) {
+      showToast("Failed to load users", "error");
+    }
+  }
+
   // ── Admin: pending user approvals ──
 
   async function openPendingModal() {
@@ -1903,6 +2051,23 @@
     });
   }
 
+  if (btnUsersAdmin) btnUsersAdmin.addEventListener("click", openUsersAdminModal);
+  if (usersAdminClose) usersAdminClose.addEventListener("click", closeUsersAdminModal);
+  if (usersAdminModal) {
+    usersAdminModal.addEventListener("click", (e) => {
+      if (e.target === usersAdminModal) closeUsersAdminModal();
+    });
+  }
+
+  if (btnHelp) btnHelp.addEventListener("click", openHelpModal);
+  if (menuBtnHelp) menuBtnHelp.addEventListener("click", openHelpModal);
+  if (helpClose) helpClose.addEventListener("click", closeHelpModal);
+  if (helpModal) {
+    helpModal.addEventListener("click", (e) => {
+      if (e.target === helpModal) closeHelpModal();
+    });
+  }
+
   if (btnMenu && menuPanel) {
     btnMenu.addEventListener("click", () => {
       menuPanel.classList.toggle("hidden");
@@ -1919,6 +2084,7 @@
   if (menuBtnClear) menuBtnClear.addEventListener("click", adminClearAll);
   if (menuBtnPending) menuBtnPending.addEventListener("click", openPendingModal);
   if (menuBtnWhoInDebug) menuBtnWhoInDebug.addEventListener("click", openWhoInDebugModal);
+  if (menuBtnUsersAdmin) menuBtnUsersAdmin.addEventListener("click", openUsersAdminModal);
 
   if (btnLeaderboard && leaderboardModal) {
     btnLeaderboard.addEventListener("click", () => {
@@ -2128,6 +2294,12 @@
     await loadFromServer();
     await refreshLeaderboard();
     requestAnimationFrame(render);
+
+    try {
+      if (!localStorage.getItem(HELP_SEEN_KEY)) {
+        await openHelpModal();
+      }
+    } catch (_) {}
   }
 
   init();

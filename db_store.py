@@ -310,6 +310,29 @@ def list_pending_users(conn: sqlite3.Connection, admin_username: str) -> list[di
     return [{"username": r["username"], "real_name": r["real_name"] or ""} for r in rows]
 
 
+def list_registered_users(conn: sqlite3.Connection, admin_username: str) -> list[dict[str, Any]]:
+    """All accounts except admin (safe fields only)."""
+    rows = conn.execute(
+        """SELECT username, real_name, approved FROM users
+           WHERE username != ? ORDER BY username""",
+        (admin_username or "",),
+    ).fetchall()
+    return [
+        {
+            "username": r["username"],
+            "real_name": r["real_name"] or "",
+            "approved": bool(r["approved"]),
+        }
+        for r in rows
+    ]
+
+
+def delete_user(conn: sqlite3.Connection, username: str) -> int:
+    """DELETE FROM users. Returns sqlite rowcount (0 if user did not exist)."""
+    cur = conn.execute("DELETE FROM users WHERE username = ?", (username,))
+    return int(cur.rowcount)
+
+
 def list_presence_targets(conn: sqlite3.Connection, admin_username: str) -> list[dict[str, str]]:
     """Approved users with non-empty real_name, excluding the admin account."""
     rows = conn.execute(

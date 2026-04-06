@@ -185,6 +185,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if self.path.startswith("/api/pending-users"):
             self._handle_pending_users()
             return
+        from urllib.parse import urlparse
+
+        up = urlparse(self.path)
+        if up.path == "/api/admin/users":
+            self._handle_admin_users_list()
+            return
+        if up.path == "/api/help":
+            self._handle_help()
+            return
         if self.path.startswith("/api/user"):
             self._handle_get_user()
             return
@@ -232,6 +241,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return
         if self.path == "/api/admin/check-whoin":
             self._handle_admin_check_whoin()
+            return
+        if self.path == "/api/admin/delete-user":
+            self._handle_admin_delete_user()
             return
         self.send_error(404)
 
@@ -344,6 +356,70 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         finally:
             conn.close()
         _json_response(self, 200, pending)
+
+    def _handle_admin_users_list(self):
+        from urllib.parse import parse_qs, urlparse
+
+        qs = parse_qs(urlparse(self.path).query)
+        username = qs.get("username", [""])[0]
+        if not username or not _is_admin(username):
+            _json_response(self, 403, {"error": "Admin only"})
+            return
+        admin_name = parse_config().get("admin_username", "")
+        conn = db_store.get_conn()
+        try:
+            users = db_store.list_registered_users(conn, admin_name)
+        finally:
+            conn.close()
+        _json_response(self, 200, users)
+
+    def _handle_admin_delete_user(self):
+        length = int(self.headers.get("Content-Length", 0))
+        raw = self.rfile.read(length)
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError:
+            _json_response(self, 400, {"error": "Invalid JSON"})
+            return
+        admin_u = payload.get("username", "")
+        target = (payload.get("target_username") or "").strip()
+        if not _is_admin(admin_u):
+            _json_response(self, 403, {"error": "Admin only"})
+            return
+        if not target:
+            _json_response(self, 400, {"error": "Missing target_username"})
+            return
+        admin_name = parse_config().get("admin_username", "")
+        if target == admin_name:
+            _json_response(self, 403, {"error": "Cannot remove admin account"})
+            return
+        conn = db_store.get_conn()
+        try:
+            if not db_store.user_get(conn, target):
+                _json_response(self, 404, {"error": "User not found"})
+                return
+            with db_store.mutating_transaction(conn):
+                db_store.delete_user(conn, target)
+        finally:
+            conn.close()
+        _json_response(self, 200, {"ok": True})
+
+    def _handle_help(self):
+        help_path = os.path.join(BASE_DIR, "HELP.md")
+        if not os.path.isfile(help_path):
+            self.send_response(404)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(b"Help file not found.")
+            return
+        with open(help_path, "r", encoding="utf-8") as f:
+            body = f.read()
+        data = body.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/markdown; charset=utf-8")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
 
     def _handle_place(self):
         length = int(self.headers.get("Content-Length", 0))
